@@ -1,0 +1,16 @@
+channels:
+ - conda-forge
+ - defaults
+dependencies:
+ - python=3.9*
+ - jupyterlab
+ - jupyter_contrib_nbextensions
+ - notebook
+ - numpy
+ - pandas
+ - scikit-learn
+ - pytorch-lightning
+ - torchinfo
+ - matplotlib
+ - ipykernel
+ - ipywidgets
