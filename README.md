@@ -25,8 +25,8 @@ DeepBucketLab is an interactive, hands-on tool designed to introduce students in
 
 To start using DeepBucketLab, simply click on the Binder badge above. This will launch the interactive notebook in your browser, allowing you to begin experimenting with neural network models right away.
 
-For more detailed instructions and documentation, please refer to our [User Guide](link-to-user-guide).
+For more detailed instructions and documentation, please see our publication.
 
 ## Contributing
 
-We welcome contributions from the community, whether it's adding new features, improving documentation, or reporting issues. Please see our [Contribution Guidelines](link-to-contribution-guidelines) for more information on how you can contribute to DeepBucketLab.
+We welcome contributions from the community, especially if you have used the tool in an educational setting and have identified specific areas for improvement, whether it's adding new features, improving documentation, or reporting issues. For major changes, please open an issue first to discuss what you would like to change.
