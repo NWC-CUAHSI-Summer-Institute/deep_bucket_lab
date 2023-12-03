@@ -2,6 +2,31 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/NWC-CUAHSI-Summer-Institute/deep_bucket_lab/HEAD)
 
-Neural network-based models are the current state-of-the-art for predicting current and future hydrological conditions. There is a need for formal training at the upper division and graduate level of hydrology education in neural networks for this purpose. We present a hands-on modeling tool for students in civil engineering and Earth science disciplines to help them learn the fundamentals of neural network methods for dynamic systems modeling, with particular emphasis on hydrological processes, and practice conceptual thinking in training an effective neural network model for hydrological prediction.
+## Overview
 
-![bucket schemaric](./figs/bucket_schematic.png)
+DeepBucketLab is an interactive, hands-on tool designed to introduce students in civil engineering and Earth science disciplines to the fundamentals of neural network-based modeling, with a specific focus on hydrological processes. As neural networks become increasingly vital in predicting current and future hydrological conditions, there's a growing need for formal education in this area at the upper division and graduate levels. DeepBucketLab aims to fill this gap by providing a practical and educational platform for training effective neural network models for hydrological prediction.
+
+![Bucket Schematic](./figs/bucket_schematic.png)
+
+## Features
+
+- **Interactive Learning**: Engage with neural network concepts through hands-on modeling exercises.
+- **Focus on Hydrology**: Specifically designed for understanding hydrological processes using state-of-the-art neural network models.
+- **Practical Application**: Learn how to train and evaluate neural network models in a hydrological context.
+- **Accessible Online**: Easily accessible through Binder, allowing for immediate, hassle-free usage without the need for local setup.
+
+## Target Audience
+
+- **Upper Division Students**: Ideal for students in advanced stages of civil engineering and Earth science programs.
+- **Graduate Students**: A valuable resource for graduate students specializing in hydrology, environmental science, or related fields.
+- **Educators**: A useful teaching tool for instructors in hydrology and environmental science.
+
+## Getting Started
+
+To start using DeepBucketLab, simply click on the Binder badge above. This will launch the interactive notebook in your browser, allowing you to begin experimenting with neural network models right away.
+
+For more detailed instructions and documentation, please refer to our [User Guide](link-to-user-guide).
+
+## Contributing
+
+We welcome contributions from the community, whether it's adding new features, improving documentation, or reporting issues. Please see our [Contribution Guidelines](link-to-contribution-guidelines) for more information on how you can contribute to DeepBucketLab.
