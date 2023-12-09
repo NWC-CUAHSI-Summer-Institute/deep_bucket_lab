@@ -1,5 +1,7 @@
 # DeepBucketLab
 
+[![DOI](https://sandbox.zenodo.org/badge/DOI/10.5072/zenodo.7349.svg)](https://handle.stage.datacite.org/10.5072/zenodo.7349)
+
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/NWC-CUAHSI-Summer-Institute/deep_bucket_lab/HEAD)
 
 ## Overview

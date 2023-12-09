@@ -4,16 +4,16 @@
 If you use DeepBucketLab or refer to its findings in your research or publications, please cite it as follows:
 
 ### APA Style
-Frame, J. M., Hernandez Rodriguez, L., & Bassiouni, M. (2023). DeepBucketLab - A Playground for Understanding Deep Learning for Hydrologic Process Representations. *Preprint*. Lynker Technologies; Lawrence Berkeley National Laboratory; University of California, Berkeley.
+Frame, J. M., Hernandez Rodriguez, L., & Bassiouni, M. (2023). DeepBucketLab - A Playground for Understanding Deep Learning for Hydrologic Process Representations. *Preprint*. Lynker Technologies; Lawrence Berkeley National Laboratory; University of California, Berkeley. 10.5072/zenodo.7349
 
 ### MLA Style
-Frame, Jonathan M., Leila Hernandez Rodriguez, and Maoya Bassiouni. "DeepBucketLab - A Playground for Understanding Deep Learning for Hydrologic Process Representations." *Preprint*, Lynker Technologies, Lawrence Berkeley National Laboratory, University of California, Berkeley, 9 Dec. 2023.
+Frame, Jonathan M., Leila Hernandez Rodriguez, and Maoya Bassiouni. "DeepBucketLab - A Playground for Understanding Deep Learning for Hydrologic Process Representations." *Preprint*, Lynker Technologies, Lawrence Berkeley National Laboratory, University of California, Berkeley, 9 Dec. 2023. 10.5072/zenodo.7349
 
 ### Chicago Style
 Frame, Jonathan M., Leila Hernandez Rodriguez, and Maoya Bassiouni. 2023. "DeepBucketLab - A Playground for Understanding Deep Learning for Hydrologic Process Representations." *Preprint*. Santa Barbara, CA: Lynker Technologies; Berkeley, CA: Lawrence Berkeley National Laboratory; Berkeley, CA: University of California, Berkeley.
 
 ### IEEE Style
-J. M. Frame, L. Hernandez Rodriguez, and M. Bassiouni, "DeepBucketLab - A Playground for Understanding Deep Learning for Hydrologic Process Representations," *Preprint*, Lynker Technologies, Lawrence Berkeley National Laboratory, University of California, Berkeley, Dec. 9, 2023.
+J. M. Frame, L. Hernandez Rodriguez, and M. Bassiouni, "DeepBucketLab - A Playground for Understanding Deep Learning for Hydrologic Process Representations," *Preprint*, Lynker Technologies, Lawrence Berkeley National Laboratory, University of California, Berkeley, Dec. 9, 2023. 10.5072/zenodo.7349
 
 ## Contact Information
 For further inquiries or information about this project, please contact:
