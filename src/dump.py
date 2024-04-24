@@ -208,7 +208,7 @@ class LSTM1(nn.Module):
             c_t = Variable(torch.zeros(batch_size, self.hidden_size)) # internal state
         else:
             h_t, c_t = init_states
-           
+
         out, _ = self.lstm(x)
         out = self.relu(out)
         prediction = self.fc_1(out) # Dense, fully connected layer

@@ -24,7 +24,6 @@ bucket_sim_test = BucketSimulation(config, 'test')
 
 # Simulate and store data for training, validation, and testing
 train_data = bucket_sim_train.generate_data(config['synthetic_data']['train']['num_records'])
-print("Generated Train Data:", train_data.shape)
 val_data = bucket_sim_val.generate_data(config['synthetic_data']['val']['num_records'])
 test_data = bucket_sim_test.generate_data(config['synthetic_data']['test']['num_records'])
 
@@ -35,7 +34,6 @@ bucket_dictionary = {
 }
 
 # Initialize the LSTM model and Model Controller
-lstm_model = deep_bucket_model(config['model']).to(device)
 model_controller = ModelController(config, device, bucket_dictionary)
 
 # Prepare data loaders
@@ -43,9 +41,10 @@ train_loader = model_controller.make_data_loader('train')
 val_loader = model_controller.make_data_loader('val')
 test_loader = model_controller.make_data_loader('test')
 
-# Train the model
-trained_model = model_controller.train_model(train_loader)
-# Validate the model
-model_validator = ModelValidator(trained_model, device, bucket_dictionary, config, "val")
-for ibuc in ['val']:  # assuming validation is done on 'val' dataset
-    model_validator.validate_model(val_loader, ibuc)
+# Now train_loader, val_loader, and test_loader should be dictionaries
+trained_model, results = model_controller.train_model(train_loader)
+
+model_validator = ModelValidator(trained_model, device, 
+                                 bucket_dictionary, val_loader, 
+                                 config, "val", model_controller.scaler_out)
+model_validator.validate_model()

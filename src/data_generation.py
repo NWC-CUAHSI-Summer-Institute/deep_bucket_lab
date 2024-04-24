@@ -127,21 +127,3 @@ class BucketSimulation:
             spigot_out = 0
 
         return spigot_out
-
-import yaml
-
-def load_config(config_path):
-    with open(config_path, 'r') as file:
-        config = yaml.safe_load(file)
-    return config
-
-config = load_config('configuration.yml')
-
-# Initialize simulation for each data split
-train_sim = BucketSimulation(config, 'train')
-val_sim = BucketSimulation(config, 'val')
-test_sim = BucketSimulation(config, 'test')
-
-# Optionally, print some config details to verify correct loading
-print("Training buckets:", config['synthetic_data']['train']['n_buckets'])
-print("Validation noise settings:", config['synthetic_data']['val']['noise'])

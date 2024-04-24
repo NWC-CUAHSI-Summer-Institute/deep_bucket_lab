@@ -13,27 +13,20 @@ class deep_bucket_model(nn.Module):
         self.seq_length = config['seq_length']
         self.batch_size = config['batch_size']
 
-        # LSTM and fully connected layer initialization
-        self.lstm = nn.LSTM(input_size=self.input_size, 
-                            hidden_size=self.hidden_size, 
-                            num_layers=self.num_layers,
-                            batch_first=True)
-        self.fc_1 = nn.Linear(self.hidden_size, self.num_classes)
+        self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, batch_first=True)
+        self.relu = nn.ReLU()
+        self.fc_1 =  nn.Linear(self.hidden_size, self.num_classes) #fully connected 1
    
     def forward(self, x, init_states=None):
-        """
-        Defines the forward pass of the LSTM model.
-        """
+
         if init_states is None:
-            # Initialize hidden and cell states with dimensions:
-            # [num_layers, batch_size, hidden_size]
-            h_t = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device))  # hidden state
-            c_t = Variable(torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device))  # internal state
+            h_t = Variable(torch.zeros(self.batch_size, self.hidden_size)) # hidden state
+            c_t = Variable(torch.zeros(self.batch_size, self.hidden_size)) # internal state
         else:
             h_t, c_t = init_states
-           
-        out, _ = self.lstm(x, (h_t, c_t))
-        out = out[:, -1, :]  # Get the outputs for the last time step
-        prediction = self.fc_1(out)  # Apply the fully connected layer
-        
+
+        out, _ = self.lstm(x)
+        out = self.relu(out)
+        last_time_step_output = out[:, -1, :]  # Shape will be [batch_size, hidden_size]
+        prediction = self.fc_1(last_time_step_output)  # Now the output shape is [batch_size, num_classes]
         return prediction

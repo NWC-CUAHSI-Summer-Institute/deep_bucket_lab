@@ -11,73 +11,82 @@ class ModelController:
         self.device = device
         self.config = config
         self.bucket_dictionary = bucket_dictionary
-        
-        model_config = config['model']
+        self.input_vars = config['input_vars']
+        self.output_vars = config['output_vars']
+        self.model_config = config['model']
+        self.seq_length = config['model']['seq_length']
         torch.manual_seed(1)
-        self.lstm = deep_bucket_model(model_config).to(device)
-        
-        # Assume that train_start and train_end are specified under each dataset type (train, val, test)
+        self.lstm = deep_bucket_model(config['model']).to(device)
         self.scaler_in, self.scaler_out = self.fit_scaler()
 
     def fit_scaler(self):
-        train_data = self.bucket_dictionary['train']
-        input_vars = ['precip', 'et'] + list(train_data.columns.difference(['precip', 
-                                                                            'et', 
-                                                                            'q_overflow', 
-                                                                            'q_spigot', 
-                                                                            'bucket_id', 
-                                                                            'time']))
-        output_vars = ['q_overflow', 'q_spigot']
-        
-        df_in = train_data.loc[:, input_vars]
+        # Assuming scaler is fitted using data from all training buckets
+        all_train_data = self.bucket_dictionary["train"]
+        df_in = all_train_data[self.input_vars]
         scaler_in = StandardScaler()
         scaler_in.fit(df_in)
-        
-        df_out = train_data.loc[:, output_vars]
+        df_out = all_train_data[self.output_vars]
         scaler_out = StandardScaler()
         scaler_out.fit(df_out)
-        
+        self.scaler_in = scaler_in
+        self.scaler_out = scaler_out
         return scaler_in, scaler_out
 
-    def make_data_loader(self, bucket_key):
-        df = self.bucket_dictionary[bucket_key]
-        # Ensure all expected columns are considered
-        input_vars = ['precip', 'et'] + list(df.columns.difference(['precip', 'et', 'q_overflow', 'q_spigot', 'bucket_id', 'time']))
+    def make_data_loader(self, split):
+        bucket_list = self.bucket_dictionary[split]['bucket_id'].unique()
+        loader = {}
+        for ibuc in bucket_list:
+            df = self.bucket_dictionary[split][self.bucket_dictionary[split]['bucket_id'] == ibuc]
+            
+            if df.empty:
+                continue  # Skip if no data for this bucket
 
-        print("Input variables used:", input_vars)  # Debug: Print to check what's included
+            data_in = self.scaler_in.transform(df[self.input_vars])
+            data_out = self.scaler_out.transform(df[self.output_vars])
+            
+            seq_length = self.lstm.seq_length
+            np_seq_X = [data_in[i:i+seq_length] for i in range(len(data_in) - seq_length)]
+            np_seq_y = [data_out[i] for i in range(seq_length, len(data_out))]
 
-        if len(input_vars) != self.lstm.input_size:
-            raise ValueError(f"Expected input_size {self.lstm.input_size}, but got {len(input_vars)} features.")
+            if not np_seq_X or not np_seq_y:
+                continue  # Skip if sequences are empty
 
-        output_vars = ['q_overflow', 'q_spigot']
-        data_in = self.scaler_in.transform(df[input_vars])
-        data_out = self.scaler_out.transform(df[output_vars])
+            ds = TensorDataset(torch.Tensor(np_seq_X), torch.Tensor(np_seq_y))
+            loader[ibuc] = DataLoader(ds, batch_size=self.lstm.batch_size, shuffle=True)
 
-        seq_length = self.lstm.seq_length
-        np_seq_X = np.array([data_in[i:i+seq_length] for i in range(len(data_in) - seq_length)])
-        np_seq_y = np.array([data_out[i] for i in range(seq_length, len(data_out))])
-
-        if len(np_seq_X) == 0 or len(np_seq_y) == 0:
-            raise ValueError("Generated sequences are empty. Check sequence generation logic.")
-
-        ds = torch.utils.data.TensorDataset(torch.Tensor(np_seq_X), torch.Tensor(np_seq_y))
-        loader = torch.utils.data.DataLoader(ds, batch_size=self.lstm.batch_size, shuffle=True)
-        return loader
+        return loader  # Return only the loader dictionary
 
 
     def train_model(self, train_loader):
         criterion = torch.nn.MSELoss()
-        optimizer = torch.optim.Adam(self.lstm.parameters(), lr=self.config['model']['learning_rate']['start'])
         num_epochs = self.config['model']['num_epochs']
-        
-        for epoch in range(num_epochs):
-            for data, targets in train_loader:
-                optimizer.zero_grad()
-                data, targets = data.to(self.device), targets.to(self.device)
-                output = self.lstm(data)
-                loss = criterion(output, targets)
-                loss.backward()
-                optimizer.step()
-            print(f'Epoch {epoch+1}, Loss: {loss.item()}')
+        results = {}
 
-        return self.lstm
+        for epoch in range(num_epochs):
+            epoch_losses = []
+
+            for ibuc, loader in train_loader.items():  # Assuming train_loader is a dictionary of bucket-specific loaders
+                bucket_losses = []
+
+                for data, targets in loader:
+                    optimizer = torch.optim.Adam(self.lstm.parameters(), lr=self.config['model']['learning_rate']['start'])
+                    optimizer.zero_grad()
+                    data, targets = data.to(self.device), targets.to(self.device)
+                    output = self.lstm(data)
+                    loss = criterion(output, targets)
+                    loss.backward()
+                    optimizer.step()
+                    bucket_losses.append(loss.item())
+
+                avg_loss = sum(bucket_losses) / len(bucket_losses)
+                epoch_losses.append(avg_loss)
+                if ibuc not in results:
+                    results[ibuc] = {"loss": []}
+                results[ibuc]["loss"].append(avg_loss)
+#                print(f'Epoch {epoch+1}, Bucket {ibuc}, Avg Loss: {avg_loss}')
+
+            # Calculate average loss for the epoch across all buckets
+            total_avg_loss = sum(epoch_losses) / len(epoch_losses)
+            print(f'Epoch {epoch+1}, Total Avg Loss: {total_avg_loss}')
+
+        return self.lstm, results
