@@ -59,17 +59,12 @@ class ModelValidator:
         mass_out = df['et'].sum() + df['q_overflow'].sum() + df['q_spigot'].sum() + df.loc[df.index[-1], 'h_bucket']
         return mass_in, mass_out
     
-    def scale_model_predictions(self, df_train, output):
-        # Rescale predictions to original scale
-#       scaled_outputs = self.scaler_out.inverse_transform(output.detach().cpu().numpy())
+    def scale_model_predictions(self, output):
         output_np = output.detach().cpu().numpy()
-        spigot_std = np.std(df_train['q_spigot'])
-        spigot_mean = np.mean(df_train['q_spigot'])
-        overflow_std = np.std(df_train['q_overflow'])
-        overflow_mean = np.mean(df_train['q_overflow'])
-        scaled_spigot_predictions = output_np[:, 0] * spigot_std + spigot_mean
-        scaled_overflow_predictions = output_np[:, 1] * overflow_std + overflow_mean
-        return scaled_spigot_predictions, scaled_overflow_predictions
+        # Assuming output_np shape is [batch_size, num_outputs] and num_outputs == 2
+        scaled_outputs = self.scaler_out.inverse_transform(output_np)
+        return scaled_outputs[:, 1], scaled_outputs[:, 0]  # spigot and overflow predictions
+
 
     def validate_model(self, 
                        do_summary_stats=True, 
@@ -95,7 +90,7 @@ class ModelValidator:
                 data = data.to(self.device)
                 output = self.model(data)
                 
-                scaled_spigot, scaled_overflow = self.scale_model_predictions(df_train, output)
+                scaled_spigot, scaled_overflow = self.scale_model_predictions(output)
 
                 spigot_predictions.extend(scaled_spigot)
                 overflow_predictions.extend(scaled_overflow)

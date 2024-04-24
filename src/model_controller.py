@@ -19,6 +19,7 @@ class ModelController:
         self.lstm = deep_bucket_model(config['model']).to(device)
         self.scaler_in = None
         self.scaler_out = None
+        self.fit_scalerz()
 
     def fit_scalerz(self):
         B = self.bucket_dictionary["train"]
@@ -28,7 +29,6 @@ class ModelController:
         self.scaler_out = scaler_out.fit(B.loc[:, self.output_vars])
 
     def make_data_loader(self, split):
-        self.fit_scalerz()
         bucket_list = self.bucket_dictionary[split]['bucket_id'].unique()
         loader = {}
         for ibuc in bucket_list:
