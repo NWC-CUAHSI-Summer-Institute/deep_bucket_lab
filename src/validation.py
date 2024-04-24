@@ -58,53 +58,73 @@ class ModelValidator:
         mass_in = df['precip'].sum()
         mass_out = df['et'].sum() + df['q_overflow'].sum() + df['q_spigot'].sum() + df.loc[df.index[-1], 'h_bucket']
         return mass_in, mass_out
-
-    def post_process_predictions(self, model_outputs):
-        # Implement any necessary transformation or extraction of predictions from model outputs
-        # This is a placeholder function and needs actual implementation based on model output structure
-        spigot_predictions = [output[0] for output in model_outputs]
-        overflow_predictions = [output[1] for output in model_outputs]
-        return spigot_predictions, overflow_predictions
     
-    def validate_model(self, do_plot_timeseries=False):
+    def scale_model_predictions(self, df_train, output):
+        # Rescale predictions to original scale
+#       scaled_outputs = self.scaler_out.inverse_transform(output.detach().cpu().numpy())
+        output_np = output.detach().cpu().numpy()
+        spigot_std = np.std(df_train['q_spigot'])
+        spigot_mean = np.mean(df_train['q_spigot'])
+        overflow_std = np.std(df_train['q_overflow'])
+        overflow_mean = np.mean(df_train['q_overflow'])
+        scaled_spigot_predictions = output_np[:, 0] * spigot_std + spigot_mean
+        scaled_overflow_predictions = output_np[:, 1] * overflow_std + overflow_mean
+        return scaled_spigot_predictions, scaled_overflow_predictions
+
+    def validate_model(self, 
+                       do_summary_stats=True, 
+                       do_individual_bucket_metrics=False, 
+                       do_plot_timeseries=False):
+        nse_spigot = []
+        nse_overflow = []
+        mass_residuals = []
+        df_train = self.bucket_dictionary["train"]
+
         for ibuc in self.bucket_dictionary[self.split]['bucket_id'].unique():
-            df = self.bucket_dictionary[self.split][self.bucket_dictionary[self.split]['bucket_id'] == ibuc]
+            df_obs = self.bucket_dictionary[self.split][self.bucket_dictionary[self.split]['bucket_id'] == ibuc]
             
             # Assume the predictions start after `seq_length` due to the need for initial sequence context
-            spigot_out = df['q_spigot'].iloc[self.seq_length:].to_numpy()
-            overflow_out = df['q_overflow'].iloc[self.seq_length:].to_numpy()
+            spigot_out = df_obs['q_spigot'].iloc[self.seq_length:].to_numpy()
+            overflow_out = df_obs['q_overflow'].iloc[self.seq_length:].to_numpy()
 
             spigot_predictions = []
             overflow_predictions = []
 
             loader = self.loader[ibuc]  # DataLoader for the specific bucket
             for data, _ in loader:
-                data, _ = data.to(self.device), _.to(self.device)
+                data = data.to(self.device)
                 output = self.model(data)
-                print(output.shape)
-                # Rescale predictions to original scale
-                scaled_outputs = self.scaler_out.inverse_transform(output.detach().cpu().numpy())
-                print(scaled_outputs.shape)
-                spigot_predictions.extend(scaled_outputs[:, 0])
-                overflow_predictions.extend(scaled_outputs[:, 1])
+                
+                scaled_spigot, scaled_overflow = self.scale_model_predictions(df_train, output)
+
+                spigot_predictions.extend(scaled_spigot)
+                overflow_predictions.extend(scaled_overflow)
 
             # Calculate NSE for spigot and overflow
-            print("spigot_predictions", len(spigot_predictions))
-            print("overflow_predictions", len(overflow_predictions))
-            print("spigot_out.shape", spigot_out.shape)
-            print("overflow_out.shape", overflow_out.shape)
-            spigot_nse, overland_flow_nse = self.compute_nse(spigot_predictions, overflow_predictions, spigot_out, overflow_out)
+            spigot_nse, overflow_nse = self.compute_nse(spigot_predictions, overflow_predictions, spigot_out, overflow_out)
             mass_in, mass_out = self.compute_mass_balance(ibuc)
             mass_residual = (mass_in - mass_out) / mass_in
+            nse_spigot.append(spigot_nse)
+            nse_overflow.append(overflow_nse)
+            mass_residuals.append(mass_residual)
 
-            print("Bucket ID:", ibuc)
-            print("Spigot NSE:", spigot_nse)
-            print("Overflow NSE:", overland_flow_nse)
-            print("Mass into the system:", mass_in)
-            print("Mass out or left over:", mass_out)
-            print(f"Percent mass residual: {mass_residual:.0%}")
+            if do_individual_bucket_metrics:
+                print("Bucket ID:", ibuc)
+                print("Spigot NSE:", spigot_nse)
+                print("Overflow NSE:", overflow_nse)
+                # print("Mass into the system:", mass_in)
+                # print("Mass out or left over:", mass_out)
+                print(f"Percent mass residual: {mass_residual:.0%}")
 
             if do_plot_timeseries:
                 plot_timeseries(spigot_predictions, overflow_predictions, spigot_out, overflow_out)
 
+        if do_summary_stats:
+            print("Performance Metrics Summary Across Buckets:")
+            print("Spigot NSE - Mean: {:.3f}, Median: {:.3f}, 10th Pctl: {:.3f}, 90th Pctl: {:.3f}".format(
+                np.mean(nse_spigot), np.median(nse_spigot), np.percentile(nse_spigot, 10), np.percentile(nse_spigot, 90)))
+            print("Overflow NSE - Mean: {:.3f}, Median: {:.3f}, 10th Pctl: {:.3f}, 90th Pctl: {:.3f}".format(
+                np.mean(nse_overflow), np.median(nse_overflow), np.percentile(nse_overflow, 10), np.percentile(nse_overflow, 90)))
+            print("Mass Residual - Mean: {:.3f}, Median: {:.3f}, 10th Pctl: {:.3f}, 90th Pctl: {:.3f}".format(
+                np.mean(mass_residuals), np.median(mass_residuals), np.percentile(mass_residuals, 10), np.percentile(mass_residuals, 90)))
 

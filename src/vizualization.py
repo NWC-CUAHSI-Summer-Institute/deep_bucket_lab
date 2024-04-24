@@ -13,6 +13,7 @@ def plot_timeseries(spigot_predictions, overflow_predictions, spigot_out, overfl
     ax1.plot(spigot_predictions, color=color, label='Spigot Prediction', linestyle='--')
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.legend(loc='upper left')
+    ax1.set_xlim([0,100])
 
     # Create a second y-axis for overflow data
     ax2 = ax1.twinx()
@@ -22,13 +23,14 @@ def plot_timeseries(spigot_predictions, overflow_predictions, spigot_out, overfl
     ax2.plot(overflow_predictions, color=color, label='Overflow Prediction', linestyle='--')
     ax2.tick_params(axis='y', labelcolor=color)
     ax2.legend(loc='upper right')
+    ax2.set_xlim([0,100])
 
     plt.title('Time Series Predictions vs Observations')
     plt.show()
     plt.close()
 
 class Visualization:
-    def __init__(self, bucket_dictionary, config, results=None):
+    def __init__(self, bucket_dictionary, config, scalers, results=None):
         """
         Initialize the Visualization class.
 
@@ -46,6 +48,7 @@ class Visualization:
         self.seq_length = config['model']['seq_length']
         self.input_vars = config['input_vars']
         self.output_vars = config['output_vars']
+        self.scaler_in, self.scaler_out = scalers
 
     ######################################################################################
     ######################################################################################
@@ -120,52 +123,34 @@ class Visualization:
     ######################################################################################
     ######################################################################################
     def viz_loader(self, data_loader, n_plot=100):
-        """
-        Visualize the last timestep inputs and outputs from the DataLoader.
-
-        Args:
-            data_loader (DataLoader): The DataLoader containing the data to visualize.
-            n_plot (int): Number of data points to plot.
-        """
-        # Concatenate all batches to recreate the sequence
         inputs_list = []
         outputs_list = []
+        
+        # Collect all inputs and outputs from the DataLoader
         for inputs, outputs in data_loader:
-            inputs_list.append(inputs.numpy())
-            outputs_list.append(outputs.numpy())
+            inputs_list.append(inputs.detach().cpu().numpy())
+            outputs_list.append(outputs.detach().cpu().numpy())
 
-        # Convert list to arrays
+        # Convert lists to numpy arrays
         inputs_array = np.vstack(inputs_list)
         outputs_array = np.vstack(outputs_list)
 
-        # Extract only the last timestep of each sequence
-        # Assuming that each batch is (batch_size, seq_length, num_features)
-        last_inputs = inputs_array[:, -1, :]  # Take the last timestep from each sequence
-        last_outputs = outputs_array  # Assuming outputs already correspond to the last timestep
+        # Reshape from 3D [batch_size, seq_length, num_features] to 2D [batch_size * seq_length, num_features]
+        inputs_2d = inputs_array.reshape(-1, inputs_array.shape[-1])
+        outputs_2d = outputs_array.reshape(-1, outputs_array.shape[-1])
 
-        # Ensure we don't exceed the number of available points
-        n_plot = min(n_plot, last_inputs.shape[0])
+        # Inverse transform to get back to the original scale of data
+        inputs_transformed = self.scaler_in.inverse_transform(inputs_2d)
+        outputs_transformed = self.scaler_out.inverse_transform(outputs_2d)
 
-        # Plotting
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 4))
-
-        # Plot last timestep of inputs
-        for i in range(last_inputs.shape[1]):
-            ax1.plot(range(n_plot), last_inputs[:n_plot, i], label=self.input_vars[i] if i < len(self.input_vars) else f"Feature {i}")
-        ax1.set_title('Last Timestep Inputs over Time')
-        ax1.legend()
-        ax1.set_xlabel('Time steps')
-        ax1.set_ylabel('Input Values at Last Timestep')
-
-        # Plot outputs
-        for i in range(last_outputs.shape[1]):
-            ax2.plot(range(n_plot), last_outputs[:n_plot, i], label=self.output_vars[i] if i < len(self.output_vars) else f"Feature {i}")
-        ax2.set_title('Outputs over Time')
-        ax2.legend()
-        ax2.set_xlabel('Time steps')
-        ax2.set_ylabel('Output Values')
-
-        plt.tight_layout()
+        # Plot the last time step of each sequence
+        plt.figure(figsize=(6, 4))
+        for i in range(inputs_transformed.shape[1]):
+            plt.plot(inputs_transformed[-n_plot:, i], label=f'Input Feature {i+1}')
+        for i in range(outputs_transformed.shape[1]):
+            plt.plot(outputs_transformed[-n_plot:, i], linestyle='--', label=f'Output Feature {i+1}')
+        plt.title('Features Over Time')
+        plt.xlabel('Time Steps')
+        plt.ylabel('Feature Values')
+        plt.legend()
         plt.show()
-        plt.close()
-    

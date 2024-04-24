@@ -17,22 +17,18 @@ class ModelController:
         self.seq_length = config['model']['seq_length']
         torch.manual_seed(1)
         self.lstm = deep_bucket_model(config['model']).to(device)
-        self.scaler_in, self.scaler_out = self.fit_scaler()
+        self.scaler_in = None
+        self.scaler_out = None
 
-    def fit_scaler(self):
-        # Assuming scaler is fitted using data from all training buckets
-        all_train_data = self.bucket_dictionary["train"]
-        df_in = all_train_data[self.input_vars]
+    def fit_scalerz(self):
+        B = self.bucket_dictionary["train"]
         scaler_in = StandardScaler()
-        scaler_in.fit(df_in)
-        df_out = all_train_data[self.output_vars]
+        self.scaler_in = scaler_in.fit(B.loc[:, self.input_vars])
         scaler_out = StandardScaler()
-        scaler_out.fit(df_out)
-        self.scaler_in = scaler_in
-        self.scaler_out = scaler_out
-        return scaler_in, scaler_out
+        self.scaler_out = scaler_out.fit(B.loc[:, self.output_vars])
 
     def make_data_loader(self, split):
+        self.fit_scalerz()
         bucket_list = self.bucket_dictionary[split]['bucket_id'].unique()
         loader = {}
         for ibuc in bucket_list:
@@ -45,31 +41,40 @@ class ModelController:
             data_out = self.scaler_out.transform(df[self.output_vars])
             
             seq_length = self.lstm.seq_length
-            np_seq_X = [data_in[i:i+seq_length] for i in range(len(data_in) - seq_length)]
-            np_seq_y = [data_out[i] for i in range(seq_length, len(data_out))]
+            np_seq_X = np.array([data_in[i:i+seq_length] for i in range(len(data_in) - seq_length)])
+            np_seq_y = np.array([data_out[i] for i in range(seq_length, len(data_out))])
 
-            if not np_seq_X or not np_seq_y:
+            if np_seq_X.size == 0 or np_seq_y.size == 0:
                 continue  # Skip if sequences are empty
 
-            ds = TensorDataset(torch.Tensor(np_seq_X), torch.Tensor(np_seq_y))
-            loader[ibuc] = DataLoader(ds, batch_size=self.lstm.batch_size, shuffle=True)
+            ds = TensorDataset(torch.tensor(np_seq_X, dtype=torch.float32), torch.tensor(np_seq_y, dtype=torch.float32))
+            loader[ibuc] = DataLoader(ds, batch_size=self.lstm.batch_size, shuffle=False)
 
         return loader  # Return only the loader dictionary
 
-
     def train_model(self, train_loader):
         criterion = torch.nn.MSELoss()
+        optimizer = torch.optim.Adam(
+            self.lstm.parameters(), 
+            lr=self.config['model']['learning_rate']['start']
+        )
+        # Set up the learning rate scheduler
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, 
+            step_size=self.config['model']['learning_rate']['step_size'], 
+            gamma=self.config['model']['learning_rate']['gamma']
+        )
+
         num_epochs = self.config['model']['num_epochs']
         results = {}
 
         for epoch in range(num_epochs):
             epoch_losses = []
 
-            for ibuc, loader in train_loader.items():  # Assuming train_loader is a dictionary of bucket-specific loaders
+            for ibuc, loader in train_loader.items():
                 bucket_losses = []
 
                 for data, targets in loader:
-                    optimizer = torch.optim.Adam(self.lstm.parameters(), lr=self.config['model']['learning_rate']['start'])
                     optimizer.zero_grad()
                     data, targets = data.to(self.device), targets.to(self.device)
                     output = self.lstm(data)
@@ -83,7 +88,9 @@ class ModelController:
                 if ibuc not in results:
                     results[ibuc] = {"loss": []}
                 results[ibuc]["loss"].append(avg_loss)
-#                print(f'Epoch {epoch+1}, Bucket {ibuc}, Avg Loss: {avg_loss}')
+
+            # Step the scheduler after each epoch
+            scheduler.step()
 
             # Calculate average loss for the epoch across all buckets
             total_avg_loss = sum(epoch_losses) / len(epoch_losses)
