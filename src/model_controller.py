@@ -11,15 +11,21 @@ class ModelController:
         self.device = device
         self.config = config
         self.bucket_dictionary = bucket_dictionary
-        self.input_vars = config['input_vars']
-        self.output_vars = config['output_vars']
-        self.model_config = config['model']
-        self.seq_length = config['model']['seq_length']
+        self.do_config()
         torch.manual_seed(1)
-        self.lstm = deep_bucket_model(config['model']).to(device)
+        self.initialize_model()
         self.scaler_in = None
         self.scaler_out = None
         self.fit_scalerz()
+
+    def initialize_model(self):
+        self.lstm = deep_bucket_model(self.model_config).to(self.device)
+
+    def do_config(self):
+        self.model_config = self.config['model']
+        self.input_vars = self.config['input_vars']
+        self.output_vars = self.config['output_vars']
+        self.seq_length = self.config['model']['seq_length']
 
     def fit_scalerz(self):
         B = self.bucket_dictionary["train"]
