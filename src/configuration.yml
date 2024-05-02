@@ -17,6 +17,8 @@ model:
 input_vars: ['precip', 'et']
 #input_vars: ['precip', 'A_spigot', 'H_bucket', 'H_spigot', 'K_infiltration', 'ET_parameter']
 output_vars: ['q_overflow', 'q_spigot']
+#output_vars: ['q_spigot']
+#output_vars: ['q_overflow']
 device:
   use_cuda: true
 synthetic_data:
