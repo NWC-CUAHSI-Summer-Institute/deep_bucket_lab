@@ -2,30 +2,37 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_timeseries(spigot_predictions, overflow_predictions, spigot_out, overflow_out):
-    fig, ax1 = plt.subplots(figsize=(5, 3))
+def plot_timeseries(predictions, observations, output_vars):
+    """
+    Plot timeseries data for any number of output variables.
+
+    Args:
+        predictions (dict): Dictionary of predictions where keys are variable names.
+        observations (dict): Dictionary of observations where keys are variable names.
+        output_vars (list): List of output variable names to plot.
+        title (str): The title of the plot.
+    """
+    num_vars = len(output_vars)
+    fig, axes = plt.subplots(num_vars, 1, figsize=(3, 2 * num_vars), sharex=True)
     
-    # Plot spigot data on the primary y-axis
-    color = 'tab:blue'
-    ax1.set_xlabel('Time Steps')
-    ax1.set_ylabel('Spigot Output', color=color)
-    ax1.plot(spigot_out, color=color, label='Spigot Observation', linestyle='-')
-    ax1.plot(spigot_predictions, color=color, label='Spigot Prediction', linestyle='--')
-    ax1.tick_params(axis='y', labelcolor=color)
-    ax1.legend(loc='upper left')
-    ax1.set_xlim([0,100])
+    if num_vars == 1:
+        axes = [axes]  # Make sure axes is iterable even for a single subplot scenario
 
-    # Create a second y-axis for overflow data
-    ax2 = ax1.twinx()
-    color = 'tab:green'
-    ax2.set_ylabel('Overflow Output', color=color)
-    ax2.plot(overflow_out, color=color, label='Overflow Observation', linestyle='-')
-    ax2.plot(overflow_predictions, color=color, label='Overflow Prediction', linestyle='--')
-    ax2.tick_params(axis='y', labelcolor=color)
-    ax2.legend(loc='upper right')
-    ax2.set_xlim([0,100])
+    for ax, var_name in zip(axes, output_vars):
+        obs = observations[var_name]
+        pred = predictions[var_name]
+        
+        # Plot observation
+        ax.plot(obs, label=f'Obs', linestyle='-', color='tab:blue')
+        
+        # Plot prediction
+        ax.plot(pred, label=f'Pred', linestyle='--', color='tab:orange')
+        
+        ax.set_ylabel(f'{var_name}')
+        ax.legend(loc='upper left')
+        ax.set_xlim([0, 100])  # Assuming you want to limit the x-axis for better visualization
 
-    plt.title('Time Series Predictions vs Observations')
+    plt.tight_layout()
     plt.show()
     plt.close()
 

@@ -11,15 +11,21 @@ class ModelController:
         self.device = device
         self.config = config
         self.bucket_dictionary = bucket_dictionary
-        self.input_vars = config['input_vars']
-        self.output_vars = config['output_vars']
-        self.model_config = config['model']
-        self.seq_length = config['model']['seq_length']
+        self.do_config()
         torch.manual_seed(1)
-        self.lstm = deep_bucket_model(config['model']).to(device)
+        self.initialize_model()
         self.scaler_in = None
         self.scaler_out = None
         self.fit_scalerz()
+
+    def initialize_model(self):
+        self.lstm = deep_bucket_model(self.model_config).to(self.device)
+
+    def do_config(self):
+        self.model_config = self.config['model']
+        self.input_vars = self.config['input_vars']
+        self.output_vars = self.config['output_vars']
+        self.seq_length = self.config['model']['seq_length']
 
     def fit_scalerz(self):
         B = self.bucket_dictionary["train"]
@@ -38,10 +44,14 @@ class ModelController:
                 continue  # Skip if no data for this bucket
 
             data_in = self.scaler_in.transform(df[self.input_vars])
+            print("data_in.shape",data_in.shape)
+            print("data_in", np.mean(df[self.input_vars]), np.mean(data_in))
             data_out = self.scaler_out.transform(df[self.output_vars])
+            print("data_out.shape",data_out.shape)
+            print("data_out", np.mean(df[self.output_vars]), np.mean(data_out))
             
             seq_length = self.lstm.seq_length
-            np_seq_X = np.array([data_in[i:i+seq_length] for i in range(len(data_in) - seq_length)])
+            np_seq_X = np.array([data_in[i-seq_length:i] for i in range(seq_length, len(data_in))])
             np_seq_y = np.array([data_out[i] for i in range(seq_length, len(data_out))])
 
             if np_seq_X.size == 0 or np_seq_y.size == 0:

@@ -15,22 +15,20 @@ class deep_bucket_model(nn.Module):
 
         # Initialize LSTM
         self.lstm = nn.LSTM(input_size=self.input_size, 
-                            hidden_size=self.hidden_size, 
-                            num_layers=self.num_layers,  # This should match the expected layers
+                            hidden_size=self.hidden_size,
                             batch_first=True)
         self.relu = nn.ReLU()
-        self.fc_1 = nn.Linear(self.hidden_size, self.num_classes)  # Fully connected layer
+        self.fc_1 = nn.Linear(self.hidden_size, self.num_classes) 
 
     def forward(self, x, init_states=None):
         if init_states is None:
             # Initialize hidden and cell states
-            h_t = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=x.device)  # Adjust size to batch first
-            c_t = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=x.device)  # Adjust size to batch first
-        else:
-            h_t, c_t = init_states
+            h_t = Variable(torch.zeros(1, x.size(0), self.hidden_size, device=x.device))
+            c_t = Variable(torch.zeros(1, x.size(0), self.hidden_size, device=x.device))
+            init_states = (h_t, c_t)
 
         # Process input through LSTM
-        out, _ = self.lstm(x, (h_t, c_t))
+        out, _ = self.lstm(x, init_states)
         out = self.relu(out[:, -1, :])  # Apply ReLU to last timestep
         prediction = self.fc_1(out)  # Generate prediction
         return prediction
