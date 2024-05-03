@@ -3,35 +3,30 @@ g: 9.807
 time_step: 1
 model:
   num_classes: 2
-  input_size: 2
+  input_size: 8
   hidden_state_size: 16
-  num_layers: 2
-  num_epochs: 50
-  batch_size: 256
+  num_epochs: 30
+  batch_size: 512
   seq_length: 32
   learning_rate:
     start: 0.1
-    step_size: 1
-    gamma: 0.96
-#input_vars: ['precip', 'et', 'A_bucket', 'A_spigot', 'H_bucket', 'H_spigot', 'K_infiltration', 'ET_parameter']
-input_vars: ['precip', 'et']
-#input_vars: ['precip', 'A_spigot', 'H_bucket', 'H_spigot', 'K_infiltration', 'ET_parameter']
-output_vars: ['q_overflow', 'q_spigot']
-#output_vars: ['q_spigot']
-#output_vars: ['q_overflow']
+    step_size: 2
+    gamma: 0.90
+input_vars: ['precip', 'et', 'A_bucket', 'A_spigot', 'H_bucket', 'H_spigot', 'K_infiltration', 'ET_parameter']
+output_vars: ['q_spigot', 'q_overflow']
 device:
   use_cuda: true
 synthetic_data:
   train:
-    n_buckets: 9
-    num_records: 400
+    n_buckets: 25
+    num_records: 300
     bucket_attributes:
-      A_bucket: [1.0, 1.0]
-      A_spigot: [0.1, 0.1]
-      H_bucket: [5.0, 5.0]
-      H_spigot: [1.0, 1.0]
-      K_infiltration: [1e-7, 1e-7]
-      ET_parameter: [7, 7]
+      A_bucket: [1.0, 2.0]
+      A_spigot: [0.1, 0.2]
+      H_bucket: [5.0, 6.0]
+      H_spigot: [1.0, 3.0]
+      K_infiltration: [1e-7, 1e-9]
+      ET_parameter: [7, 9]
     rain_probability:
       None: [0.6, 0.7]
       Light: [0.5, 0.8]
@@ -40,20 +35,20 @@ synthetic_data:
       Light: [0, 2]
       Heavy: [2, 8]
     noise:
-        pet: 0
-        et: 0
-        q: 0
-        head: 0
+        pet: 0.1
+        et: 0.1
+        q: 0.1
+        head: 0.1
   val:
-    n_buckets: 3
-    num_records: 400
+    n_buckets: 10
+    num_records: 150
     bucket_attributes:
-      A_bucket: [1.0, 1.0]
-      A_spigot: [0.1, 0.1]
-      H_bucket: [5.0, 5.0]
-      H_spigot: [1.0, 1.0]
-      K_infiltration: [1e-7, 1e-7]
-      ET_parameter: [7, 7]
+      A_bucket: [1.0, 2.0]
+      A_spigot: [0.1, 0.2]
+      H_bucket: [5.0, 6.0]
+      H_spigot: [1.0, 3.0]
+      K_infiltration: [1e-7, 1e-9]
+      ET_parameter: [7, 9]
     rain_probability:
       None: [0.6, 0.7]
       Light: [0.5, 0.8]
@@ -62,20 +57,20 @@ synthetic_data:
       Light: [0, 2]
       Heavy: [2, 8]
     noise:
-        pet: 0
-        et: 0
-        q: 0
-        head: 0
+        pet: 0.1
+        et: 0.1
+        q: 0.1
+        head: 0.1
   test:
     n_buckets: 3
     num_records: 400
     bucket_attributes:
-      A_bucket: [1.0, 1.0]
-      A_spigot: [0.1, 0.1]
-      H_bucket: [5.0, 5.0]
-      H_spigot: [1.0, 1.0]
-      K_infiltration: [1e-7, 1e-7]
-      ET_parameter: [7, 7]
+      A_bucket: [1.0, 2.0]
+      A_spigot: [0.1, 0.2]
+      H_bucket: [5.0, 6.0]
+      H_spigot: [1.0, 3.0]
+      K_infiltration: [1e-7, 1e-9]
+      ET_parameter: [7, 9]
     rain_probability:
       None: [0.6, 0.7]
       Light: [0.5, 0.8]
@@ -84,7 +79,7 @@ synthetic_data:
       Light: [0, 2]
       Heavy: [2, 8]
     noise:
-        pet: 0
-        et: 0
-        q: 0
-        head: 0
+        pet: 0.1
+        et: 0.1
+        q: 0.1
+        head: 0.1
