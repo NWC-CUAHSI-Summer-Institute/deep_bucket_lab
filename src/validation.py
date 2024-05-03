@@ -1,7 +1,4 @@
-#!/home/jonat/anaconda3/envs/deep_bucket_env/bin/python3
-import torch
 import numpy as np
-import yaml
 from vizualization import plot_timeseries
 
 class ModelValidator:
@@ -99,8 +96,8 @@ class ModelValidator:
             print("Performance Metrics Summary Across Buckets:")
             for var in output_vars:
                 print(f"{var} NSE - Mean: {np.mean(performance_metrics[var]):.3f}, "
-                    f"Median: {np.median(performance_metrics[var]):.3f}, "
+                   f"Median: {np.median(performance_metrics[var]):.3f}, "
                     f"10th Pctl: {np.percentile(performance_metrics[var], 10):.3f}, "
                     f"90th Pctl: {np.percentile(performance_metrics[var], 90):.3f}")
             print("Mass Residual - Mean: {:.3f}, Median: {:.3f}, 10th Pctl: {:.3f}, 90th Pctl: {:.3f}".format(
-                np.mean(mass_residuals), np.median(mass_residuals), np.percentile(mass_residuals, 10), np.percentile(mass_residuals, 90)))
+               np.mean(mass_residuals), np.median(mass_residuals), np.percentile(mass_residuals, 10), np.percentile(mass_residuals, 90)))

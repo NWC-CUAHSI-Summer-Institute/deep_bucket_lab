@@ -1,4 +1,3 @@
-#!/home/jonat/anaconda3/envs/deep_bucket_env/bin/python3
 import torch
 import numpy as np
 from sklearn.preprocessing import StandardScaler

@@ -1,8 +1,8 @@
-#!/home/jonat/anaconda3/envs/deep_bucket_env/bin/python3
+import sys
+sys.path.append('./src/')
 import yaml
 import torch
 from data_generation import BucketSimulation
-from lstm import deep_bucket_model
 from model_controller import ModelController
 from validation import ModelValidator
 
@@ -12,7 +12,7 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-config = load_config('configuration.yml')
+config = load_config('./configuration/configuration.yml')
 
 # Check if CUDA is available and set the device
 device = torch.device('cuda' if torch.cuda.is_available() and config['device']['use_cuda'] else 'cpu')

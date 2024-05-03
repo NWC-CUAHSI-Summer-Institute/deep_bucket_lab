@@ -1,4 +1,3 @@
-#!/home/jonat/anaconda3/envs/deep_bucket_env/bin/python3
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
