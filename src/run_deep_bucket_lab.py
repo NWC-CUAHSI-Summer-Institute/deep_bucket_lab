@@ -42,7 +42,7 @@ val_loader = model_controller.make_data_loader('val')
 test_loader = model_controller.make_data_loader('test')
 
 # Now train_loader, val_loader, and test_loader should be dictionaries
-trained_model, results = model_controller.train_model(train_loader)
+trained_model = model_controller.train_model(train_loader)
 
 model_validator = ModelValidator(trained_model, device, 
                                  bucket_dictionary, val_loader, 

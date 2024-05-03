@@ -1,6 +1,5 @@
 #!/home/jonat/anaconda3/envs/deep_bucket_env/bin/python3
 import torch
-import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
@@ -26,13 +25,19 @@ class ModelController:
         self.input_vars = self.config['input_vars']
         self.output_vars = self.config['output_vars']
         self.seq_length = self.config['model']['seq_length']
-
+        
     def fit_scalerz(self):
         B = self.bucket_dictionary["train"]
-        scaler_in = StandardScaler()
-        self.scaler_in = scaler_in.fit(B.loc[:, self.input_vars])
-        scaler_out = StandardScaler()
-        self.scaler_out = scaler_out.fit(B.loc[:, self.output_vars])
+        # Create one scaler for all inputs
+        self.scaler_in = StandardScaler()
+        self.scaler_in.fit(B[self.input_vars])
+
+        # Create a dictionary of scalers for each output variable
+        self.scaler_out = {}
+        for var in self.output_vars:
+            scaler = StandardScaler()
+            scaler.fit(B[[var]])  # Note double brackets to keep the DataFrame structure
+            self.scaler_out[var] = scaler
 
     def make_data_loader(self, split):
         bucket_list = self.bucket_dictionary[split]['bucket_id'].unique()
@@ -43,16 +48,20 @@ class ModelController:
             if df.empty:
                 continue  # Skip if no data for this bucket
 
+            # Use the input scaler for all input variables
             data_in = self.scaler_in.transform(df[self.input_vars])
-            print("data_in.shape",data_in.shape)
-            print("data_in", np.mean(df[self.input_vars]), np.mean(data_in))
-            data_out = self.scaler_out.transform(df[self.output_vars])
-            print("data_out.shape",data_out.shape)
-            print("data_out", np.mean(df[self.output_vars]), np.mean(data_out))
+            
+            # Initialize a list to collect transformed outputs, transformed per sequence rather than per point
+            data_out = np.column_stack([self.scaler_out[var].transform(df[[var]]) for var in self.output_vars])
             
             seq_length = self.lstm.seq_length
-            np_seq_X = np.array([data_in[i-seq_length:i] for i in range(seq_length, len(data_in))])
-            np_seq_y = np.array([data_out[i] for i in range(seq_length, len(data_out))])
+            n = len(data_in)
+            
+            # Create input sequences
+            np_seq_X = np.array([data_in[i:i+seq_length] for i in range(n - seq_length)])
+            
+            # Create output sequences that match the input sequences in structure and time steps
+            np_seq_y = np.array([data_out[i:i+seq_length] for i in range(n - seq_length)])
 
             if np_seq_X.size == 0 or np_seq_y.size == 0:
                 continue  # Skip if sequences are empty
@@ -60,7 +69,7 @@ class ModelController:
             ds = TensorDataset(torch.tensor(np_seq_X, dtype=torch.float32), torch.tensor(np_seq_y, dtype=torch.float32))
             loader[ibuc] = DataLoader(ds, batch_size=self.lstm.batch_size, shuffle=False)
 
-        return loader  # Return only the loader dictionary
+        return loader
 
     def train_model(self, train_loader):
         criterion = torch.nn.MSELoss()
@@ -68,7 +77,6 @@ class ModelController:
             self.lstm.parameters(), 
             lr=self.config['model']['learning_rate']['start']
         )
-        # Set up the learning rate scheduler
         scheduler = torch.optim.lr_scheduler.StepLR(
             optimizer, 
             step_size=self.config['model']['learning_rate']['step_size'], 
@@ -76,18 +84,15 @@ class ModelController:
         )
 
         num_epochs = self.config['model']['num_epochs']
-        results = {}
-
         for epoch in range(num_epochs):
             epoch_losses = []
-
             for ibuc, loader in train_loader.items():
                 bucket_losses = []
-
                 for data, targets in loader:
                     optimizer.zero_grad()
                     data, targets = data.to(self.device), targets.to(self.device)
                     output = self.lstm(data)
+                    targets = targets[:, -1, :] 
                     loss = criterion(output, targets)
                     loss.backward()
                     optimizer.step()
@@ -95,15 +100,9 @@ class ModelController:
 
                 avg_loss = sum(bucket_losses) / len(bucket_losses)
                 epoch_losses.append(avg_loss)
-                if ibuc not in results:
-                    results[ibuc] = {"loss": []}
-                results[ibuc]["loss"].append(avg_loss)
 
-            # Step the scheduler after each epoch
             scheduler.step()
-
-            # Calculate average loss for the epoch across all buckets
             total_avg_loss = sum(epoch_losses) / len(epoch_losses)
-            print(f'Epoch {epoch+1}, Total Avg Loss: {total_avg_loss}')
+            print(f'Epoch {epoch+1}: Total Avg Loss: {total_avg_loss}')
 
-        return self.lstm, results
+        return self.lstm

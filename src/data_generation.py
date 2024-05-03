@@ -65,7 +65,7 @@ class BucketSimulation:
         for ibuc in range(self.n_buckets):
             for t in range(num_records):
                 precip_in, et = self.simulate_rain_and_et(ibuc, t)
-                self.process_water_dynamics(ibuc, precip_in, et, t)
+                self.process_respose_dynamics(ibuc, precip_in, et, t)
                 spigot_out = self.calculate_spigot_out(ibuc, t)
 
                 # Assign calculated values to the DataFrame
@@ -99,13 +99,14 @@ class BucketSimulation:
         return precip_in, et
 
 
-    def process_water_dynamics(self, ibuc, precip_in, et, t):
+    def process_respose_dynamics(self, ibuc, precip_in, et, t):
         # Updating water level with precipitation
         self.h_water_level[ibuc] += precip_in
         
         # Accounting for evaporation and infiltration
         infiltration = self.h_water_level[ibuc] * self.buckets['K_infiltration'][ibuc]
-        self.h_water_level[ibuc] = max(0, self.h_water_level[ibuc] - et - infiltration)
+        self.h_water_level[ibuc] = np.max([0 , (self.h_water_level[ibuc] - et)])
+        self.h_water_level[ibuc] = np.max([0 , (self.h_water_level[ibuc] - infiltration)])
         
         # Checking for overflow
         if self.h_water_level[ibuc] > self.buckets['H_bucket'][ibuc]:
@@ -115,15 +116,26 @@ class BucketSimulation:
             self.mass_overflow[ibuc] = 0
 
         if self.is_noise:
-            self.h_water_level[ibuc] *= np.random.normal(1, self.noise_settings.get('et', 0.1))
+            self.h_water_level[ibuc] *= np.random.normal(1, self.noise_settings.get('et', 0))
 
     def calculate_spigot_out(self, ibuc, t):
         h_head_over_spigot = max(0, self.h_water_level[ibuc] - self.buckets['H_spigot'][ibuc])
+
+        if self.is_noise:
+            if h_head_over_spigot > 0:
+                h_head_over_spigot = h_head_over_spigot * np.random.normal(1, self.noise_settings.get('head', 0))
+            elif h_head_over_spigot == 0:
+                h_head_over_spigot = h_head_over_spigot + np.random.uniform(0, self.noise_settings.get('head', 0)/4)
+
         if h_head_over_spigot > 0:
             velocity_out = np.sqrt(2 * self.g * h_head_over_spigot)
             spigot_out = velocity_out * self.buckets['A_spigot'][ibuc] * self.time_step
+            if self.is_noise:
+                    spigot_out = spigot_out * np.random.normal(1, self.noise_settings.get('q', 0))
             self.h_water_level[ibuc] -= spigot_out
         else:
             spigot_out = 0
+            if self.is_noise:
+                    spigot_out = spigot_out + np.random.uniform(1, self.noise_settings.get('q', 0)/4)
 
         return spigot_out
