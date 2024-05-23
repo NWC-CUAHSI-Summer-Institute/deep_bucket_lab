@@ -19,7 +19,7 @@ model:
     start: 0.1
     step_size: 2
   num_classes: 2
-  num_epochs: 30
+  num_epochs: 5
   seq_length: 32
 output_vars:
 - q_spigot
@@ -89,7 +89,7 @@ synthetic_data:
       K_infiltration:
       - 1e-7
       - 1e-9
-    n_buckets: 30
+    n_buckets: 10
     noise:
       et: 0.01
       head: 0.01
