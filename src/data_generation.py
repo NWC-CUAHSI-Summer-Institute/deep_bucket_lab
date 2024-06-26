@@ -92,6 +92,8 @@ class BucketSimulation:
         precip_in = self.simulate_rain_event(preceding_rain, rain_params)
         
         # Simulating evapotranspiration (ET)
+        # ET (m/s) is the value at each time step taking diurnal fluctuations into account. The definite integral of the following function
+        # (excluding noise) from 0 to 86400 is equal to ET_parameter, which is measured in m/day.
         et = max(0, (self.buckets["ET_parameter"][ibuc] * np.sin((1/13750.9870831) * t) *
                      np.random.normal(1, self.noise_settings.get('pet', 0))))
         
@@ -103,19 +105,41 @@ class BucketSimulation:
         self.h_water_level[ibuc] += precip_in
         
         # Accounting for evaporation and infiltration
-        infiltration = self.h_water_level[ibuc] * self.buckets['K_infiltration'][ibuc]
+
+        # Calculate change in height due to infiltration using Darcy's Law. Divide Q (m^3/s) by A_bucket (m^2) to get infiltration (m/s)
+        # Q = (k * rho * g * A_bucket * delta_h) / (mu * L)
+        # infiltration = (k * rho * g * delta_h) / (mu * L)
+
+        # k = K_infiltration = geologic permeability (m^2)
+        # rho = density of water, constant, ~1000 kg/m^3
+        # g = gravitational constant, ~9.807 m/s^2
+        # mu = viscosity of water, constant , ~0.001 Pa/s
+        # L = soil depth (m)
+        # delta_h = hydraulic head/soil water potential (m) = soil depth + h_water_level
+        # infitration = flow (m/s)
+
+        k = self.buckets['K_infiltration'][ibuc]
+        L = self.buckets['soil_depth'][ibuc]
+        delta_h = self.h_water_level[ibuc] + L
+
+        infiltration = (k * self.rho * self.g * delta_h) / (self.mu * L)
+
         self.h_water_level[ibuc] = np.max([0 , (self.h_water_level[ibuc] - et)])
         self.h_water_level[ibuc] = np.max([0 , (self.h_water_level[ibuc] - infiltration)])
-        
-        # Checking for overflow
-        if self.h_water_level[ibuc] > self.buckets['H_bucket'][ibuc]:
-            self.mass_overflow[ibuc] = self.h_water_level[ibuc] - self.buckets['H_bucket'][ibuc]
-            self.h_water_level[ibuc] = self.buckets['H_bucket'][ibuc]
-        else:
-            self.mass_overflow[ibuc] = 0
 
         if self.is_noise:
             self.h_water_level[ibuc] *= np.random.normal(1, self.noise_settings.get('et', 0))
+        
+        # Checking for overflow
+        if self.h_water_level[ibuc] > self.buckets['H_bucket'][ibuc]:
+            self.mass_overflow[ibuc] = (self.h_water_level[ibuc] - self.buckets['H_bucket'][ibuc]) * self.buckets["A_bucket"][ibuc]
+            self.h_water_level[ibuc] = self.buckets['H_bucket'][ibuc]
+            if self.is_noise:
+                self.h_water_level[ibuc] -= np.random.normal(0, self.noise_settings.get('q',0))
+        else:
+            self.mass_overflow[ibuc] = 0
+
+
 
     def calculate_spigot_out(self, ibuc, t):
         h_head_over_spigot = max(0, self.h_water_level[ibuc] - self.buckets['H_spigot'][ibuc])
