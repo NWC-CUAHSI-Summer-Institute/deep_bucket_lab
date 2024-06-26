@@ -92,8 +92,8 @@ class BucketSimulation:
         precip_in = self.simulate_rain_event(preceding_rain, rain_params)
         
         # Simulating evapotranspiration (ET)
-        et = max(0, (self.buckets['A_bucket'][ibuc] / self.buckets['ET_parameter'][ibuc]) *
-                np.sin(np.pi * t / 180) * np.random.normal(1, self.noise_settings.get('pet', 0)))
+        et = max(0, (self.buckets["ET_parameter"][ibuc] * np.sin((1/13750.9870831) * t) *
+                     np.random.normal(1, self.noise_settings.get('pet', 0))))
         
         return precip_in, et
 
