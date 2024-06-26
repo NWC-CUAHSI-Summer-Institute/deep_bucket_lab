@@ -26,7 +26,7 @@ class BucketSimulation:
         """
         buckets = {attr: np.random.uniform(float(low), float(high), self.n_buckets)
                    for attr, (low, high) in self.bucket_attributes_range.items()}
-        h_water_level = np.random.random(self.n_buckets)
+        h_water_level = np.array([np.random.uniform(0, value) for value in buckets["H_bucket"]])
         mass_overflow = np.random.random(self.n_buckets)
         return buckets, h_water_level, mass_overflow
 
