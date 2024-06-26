@@ -147,18 +147,18 @@ class BucketSimulation:
         if self.is_noise:
             if h_head_over_spigot > 0:
                 h_head_over_spigot = h_head_over_spigot * np.random.normal(1, self.noise_settings.get('head', 0))
-            elif h_head_over_spigot == 0:
-                h_head_over_spigot = h_head_over_spigot + np.random.uniform(0, self.noise_settings.get('head', 0)/4)
+            #elif h_head_over_spigot == 0:
+            #    h_head_over_spigot = h_head_over_spigot + np.random.uniform(0, self.noise_settings.get('head', 0)/4)
 
         if h_head_over_spigot > 0:
             velocity_out = np.sqrt(2 * self.g * h_head_over_spigot)
             spigot_out = velocity_out * self.buckets['A_spigot'][ibuc] * self.time_step
             if self.is_noise:
-                    spigot_out = spigot_out * np.random.normal(1, self.noise_settings.get('q', 0))
-            self.h_water_level[ibuc] -= spigot_out
+                spigot_out = spigot_out * np.random.normal(1, self.noise_settings.get('q', 0))
+            self.h_water_level[ibuc] = max(self.buckets["H_spigot"][ibuc], self.h_water_level[ibuc] - (spigot_out / self.buckets["A_bucket"][ibuc]))
         else:
             spigot_out = 0
-            if self.is_noise:
-                    spigot_out = spigot_out + np.random.uniform(1, self.noise_settings.get('q', 0)/4)
+            #if self.is_noise:
+            #        spigot_out = spigot_out + np.random.uniform(1, self.noise_settings.get('q', 0)/4)
 
         return spigot_out
