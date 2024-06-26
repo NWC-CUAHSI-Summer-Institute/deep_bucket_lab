@@ -14,6 +14,8 @@ class BucketSimulation:
         self.rain_depth_range = config['synthetic_data'][split]['rain_depth']
         self.time_step = float(config['time_step'])
         self.g = float(config['g'])
+        self.rho = float(config['rho'])
+        self.mu = float(config['mu'])
         self.is_noise = config['synthetic_data'][split].get('noise', False)
         self.buckets, self.h_water_level, self.mass_overflow = self.setup_buckets()
         self.noise_settings = config['synthetic_data'][split].get('noise', {})
