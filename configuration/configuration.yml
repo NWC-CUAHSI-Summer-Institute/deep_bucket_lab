@@ -1,6 +1,8 @@
 device:
   use_cuda: true
 g: 9.807
+rho: 1000
+mu: 0.001
 input_vars:
 - precip
 - et
@@ -10,17 +12,18 @@ input_vars:
 - H_spigot
 - K_infiltration
 - ET_parameter
+- soil_depth
 model:
-  batch_size: 512
+  batch_size: 256
   hidden_state_size: 16
-  input_size: 8
+  input_size: 9
   learning_rate:
     gamma: 0.9
     start: 0.1
     step_size: 2
   num_classes: 2
   num_epochs: 5
-  seq_length: 32
+  seq_length: 24
 output_vars:
 - q_spigot
 - q_overflow
@@ -28,14 +31,14 @@ synthetic_data:
   test:
     bucket_attributes:
       A_bucket:
-      - 1.0
-      - 2.0
+      - 10.0
+      - 20.0
       A_spigot:
-      - 0.1
-      - 0.2
+      - 1
+      - 2
       ET_parameter:
-      - 7
-      - 9
+      - 0.001
+      - 0.004
       H_bucket:
       - 5.0
       - 6.0
@@ -43,15 +46,18 @@ synthetic_data:
       - 1.0
       - 3.0
       K_infiltration:
-      - 1e-7
-      - 1e-9
-    n_buckets: 3
+      - 10e-15
+      - 10e-9
+      soil_depth:
+      - 10
+      - 20
+    n_buckets: 1
     noise:
       et: 0.1
       head: 0.1
       pet: 0.1
       q: 0.1
-    num_records: 400
+    num_records: 500
     rain_depth:
       Heavy:
       - 2
@@ -72,14 +78,14 @@ synthetic_data:
   train:
     bucket_attributes:
       A_bucket:
-      - 1.0
-      - 2.0
+      - 10.0
+      - 20.0
       A_spigot:
-      - 0.1
-      - 0.2
+      - 1
+      - 2
       ET_parameter:
-      - 7
-      - 9
+      - 0.001
+      - 0.004
       H_bucket:
       - 5.0
       - 6.0
@@ -87,15 +93,18 @@ synthetic_data:
       - 1.0
       - 3.0
       K_infiltration:
-      - 1e-7
-      - 1e-9
+      - 10e-15
+      - 10e-9
+      soil_depth:
+      - 10
+      - 20
     n_buckets: 10
     noise:
       et: 0.01
       head: 0.01
       pet: 0.01
       q: 0.01
-    num_records: 300
+    num_records: 1000
     rain_depth:
       Heavy:
       - 2
@@ -116,14 +125,14 @@ synthetic_data:
   val:
     bucket_attributes:
       A_bucket:
-      - 1.0
-      - 2.0
+      - 10.0
+      - 20.0
       A_spigot:
-      - 0.1
-      - 0.2
+      - 1
+      - 2
       ET_parameter:
-      - 7
-      - 9
+      - 0.001
+      - 0.004
       H_bucket:
       - 5.0
       - 6.0
@@ -131,15 +140,18 @@ synthetic_data:
       - 1.0
       - 3.0
       K_infiltration:
-      - 1e-7
-      - 1e-9
-    n_buckets: 20
+      - 10e-15
+      - 10e-9
+      soil_depth:
+      - 10
+      - 20
+    n_buckets: 5
     noise:
       et: 0.01
       head: 0.4
       pet: 0.01
       q: 0.01
-    num_records: 150
+    num_records: 500
     rain_depth:
       Heavy:
       - 2
