@@ -58,7 +58,7 @@ class BucketSimulation:
         Randomly generates rain parameters based on configured probabilities and depths.
         """
         return [
-            {key: [float(value[0]), float(value[1])] for key, value in self.rain_depth_range.items()},
+            {key: [float(v) for v in value] for key, value in self.rain_depth_range.items()},
             np.random.uniform(float(self.rain_probability_range["None"][0]), float(self.rain_probability_range["None"][1])),
             np.random.uniform(float(self.rain_probability_range["Heavy"][0]), float(self.rain_probability_range["Heavy"][1])),
             np.random.uniform(float(self.rain_probability_range["Light"][0]), float(self.rain_probability_range["Light"][1]))
@@ -66,12 +66,32 @@ class BucketSimulation:
 
     def simulate_rain_event(self, preceding_rain, rain_params):
         depth_range, no_rain_probability, heavy_rain_probability, light_rain_probability = rain_params
+       # some percent of time we have no rain at all
         if np.random.uniform(0.01, 0.99) < no_rain_probability:
-            return 0
-        elif preceding_rain < depth_range["Light"][1]:
-            return np.random.uniform(*depth_range["Light"]) if np.random.uniform(0, 1) < light_rain_probability else np.random.uniform(*depth_range["Heavy"])
+            rain = 0
+
+        # When we do have rain, the probability of heavy or light rain depends on the previous hour's rainfall
         else:
-            return np.random.uniform(*depth_range["Heavy"]) if np.random.uniform(0, 1) < heavy_rain_probability else np.random.uniform(*depth_range["Light"])
+            rain = np.inf
+            # If last hour was a light rainy hour, or no rain, then we are likely to have light rain this hour
+            if preceding_rain < self.threshold_precip:
+                if np.random.uniform(0, 1) < light_rain_probability:
+                    while rain < 0 or rain > self.threshold_precip:
+                        rain = stats.gumbel_r.rvs(depth_range["Light"][0], depth_range["Light"][1])
+                else:
+                    # But if we do have heavy rain, then it could be very heavy
+                    while rain < self.threshold_precip or rain > self.max_precip:
+                        rain = stats.genpareto.rvs(depth_range["Heavy"][0], depth_range["Heavy"][1], depth_range["Heavy"][2])
+
+            # If it was heavy rain last hour, then we might have heavy rain again this hour
+            else:
+                if np.random.uniform(0, 1) < heavy_rain_probability:
+                    while rain < self.threshold_precip or rain > self.max_precip:
+                        rain = stats.genpareto.rvs(depth_range["Heavy"][0], depth_range["Heavy"][1], depth_range["Heavy"][2])
+                else:
+                    while rain < 0 or rain > self.threshold_precip:
+                        rain = stats.gumbel_r.rvs(depth_range["Light"][0], depth_range["Light"][1])
+        return rain
 
     def generate_data(self, num_records):
         column_dtypes = {'precip': 'float64', 'et': 'float64', 'h_bucket': 'float64', 
