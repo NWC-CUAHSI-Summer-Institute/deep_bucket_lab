@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import yaml
+import scipy.stats as stats
 
 class BucketSimulation:
     def __init__(self, config, split):
@@ -11,25 +12,45 @@ class BucketSimulation:
         self.n_buckets = int(config['synthetic_data'][split]['n_buckets'])
         self.bucket_attributes_range = config['synthetic_data'][split]['bucket_attributes']
         self.rain_probability_range = config['synthetic_data'][split]['rain_probability']
-        self.rain_depth_range = config['synthetic_data'][split]['rain_depth']
+        self.rain_params = config['synthetic_data'][split]['rain_params']
+        self.threshold_precip = config['synthetic_data'][split]['threshold_precip']
+        self.max_precip = config['synthetic_data'][split]['max_precip']
         self.time_step = float(config['time_step'])
         self.g = float(config['g'])
-        self.rho = float(config['rho'])
-        self.mu = float(config['mu'])
         self.is_noise = config['synthetic_data'][split].get('noise', False)
         self.buckets, self.h_water_level, self.mass_overflow = self.setup_buckets()
         self.noise_settings = config['synthetic_data'][split].get('noise', {})
-
 
     def setup_buckets(self):
         """
         Sets up initial conditions and attributes for buckets based on the range
         specified in the configuration.
         """
+        buckets = {bucket_attribute:[] for bucket_attribute in self.bucket_attributes_range.items()}
+        buckets['A_spigot'] = []
+        buckets['H_spigot'] = []
+
+        for i in range(self.n_buckets):
+            for attr in self.bucket_attributes_range.items():
+                if attr == 'A_bucket' or attr == 'H_bucket' or attr == 'rA_spigot' or attr == 'rH_spigot' or attr == 'soil_depth':
+                    buckets[attr].append(np.random.uniform(self.bucket_attributes_range[attr][0], 
+                                                            self.bucket_attributes_range[attr][1]))
+                if attr == 'K_infiltration':
+                    buckets[attr].append(np.random.normal(self.bucket_attributes_range[attr][0], 
+                                                            self.bucket_attributes_range[attr][1]))
+                    
+                if attr == "ET_parameter":
+                    buckets[attr].append(stats.weibull_min.rvs(self.bucket_attributes_range[attr][0],
+                                                                    self.bucket_attributes_range[attr][1],
+                                                                    self.bucket_attributes_range[attr][2]))
+                
+            buckets['A_spigot'].append(np.pi * (0.5 * buckets['H_bucket'][i] * buckets['rA_spigot'][i]) ** 2)
+            buckets['H_spigot'].append(buckets['H_bucket'][i] * buckets['rH_spigot'][i])
+                    
         buckets = {attr: np.random.uniform(float(low), float(high), self.n_buckets)
                    for attr, (low, high) in self.bucket_attributes_range.items()}
         h_water_level = np.array([np.random.uniform(0, value) for value in buckets["H_bucket"]])
-        mass_overflow = np.random.random(self.n_buckets)
+        mass_overflow = [0]*(self.n_buckets)
         return buckets, h_water_level, mass_overflow
 
     def pick_rain_params(self):
