@@ -1,8 +1,6 @@
 device:
   use_cuda: true
 g: 1.271e8
-rho: 1000
-mu: 0.001
 input_vars:
 - precip
 - et

@@ -137,8 +137,8 @@ class BucketSimulation:
         # Simulating evapotranspiration (ET)
         # ET (m/s) is the value at each time step taking diurnal fluctuations into account. The definite integral of the following function
         # (excluding noise) from 0 to 86400 is equal to ET_parameter, which is measured in m/day.
-        et = max(0, (self.buckets["ET_parameter"][ibuc] * np.sin((1/13750.9870831) * t) *
-                     np.random.normal(1, self.noise_settings.get('pet', 0))))
+        et = np.max([0, ((1/7.6394)* self.buckets["ET_parameter"][ibuc]) * np.sin((np.pi / 12)*t) * np.random.normal(1, self.noise_settings.get('pet', 0))])
+
         
         return precip_in, et
 
@@ -161,11 +161,11 @@ class BucketSimulation:
         # delta_h = hydraulic head/soil water potential (m) = soil depth + h_water_level
         # infitration = flow (m/s)
 
-        k = self.buckets['K_infiltration'][ibuc]
+        k = 10 ** self.buckets['K_infiltration'][ibuc]
         L = self.buckets['soil_depth'][ibuc]
         delta_h = self.h_water_level[ibuc] + L
 
-        infiltration = (k * self.rho * self.g * delta_h) / (self.mu * L)
+        infiltration = k * delta_h / L
 
         self.h_water_level[ibuc] = np.max([0 , (self.h_water_level[ibuc] - et)])
         self.h_water_level[ibuc] = np.max([0 , (self.h_water_level[ibuc] - infiltration)])
@@ -175,7 +175,7 @@ class BucketSimulation:
         
         # Checking for overflow
         if self.h_water_level[ibuc] > self.buckets['H_bucket'][ibuc]:
-            self.mass_overflow[ibuc] = (self.h_water_level[ibuc] - self.buckets['H_bucket'][ibuc]) * self.buckets["A_bucket"][ibuc]
+            self.mass_overflow[ibuc] = (self.h_water_level[ibuc] - self.buckets['H_bucket'][ibuc]) 
             self.h_water_level[ibuc] = self.buckets['H_bucket'][ibuc]
             if self.is_noise:
                 self.h_water_level[ibuc] -= np.random.normal(0, self.noise_settings.get('q',0))
@@ -195,10 +195,11 @@ class BucketSimulation:
 
         if h_head_over_spigot > 0:
             velocity_out = np.sqrt(2 * self.g * h_head_over_spigot)
-            spigot_out = velocity_out * self.buckets['A_spigot'][ibuc] * self.time_step
+            spigot_out_volume = velocity_out * self.buckets['A_spigot'][ibuc] * self.time_step
             if self.is_noise:
                 spigot_out = spigot_out * np.random.normal(1, self.noise_settings.get('q', 0))
-            self.h_water_level[ibuc] = max(self.buckets["H_spigot"][ibuc], self.h_water_level[ibuc] - (spigot_out / self.buckets["A_bucket"][ibuc]))
+            self.h_water_level = np.min([spigot_out_volume / self.buckets["A_bucket"][ibuc], h_head_over_spigot])
+
         else:
             spigot_out = 0
             #if self.is_noise:
