@@ -26,12 +26,12 @@ class BucketSimulation:
         Sets up initial conditions and attributes for buckets based on the range
         specified in the configuration.
         """
-        buckets = {bucket_attribute:[] for bucket_attribute in self.bucket_attributes_range.items()}
+        buckets = {bucket_attribute: [] for bucket_attribute in self.bucket_attributes_range}
         buckets['A_spigot'] = []
         buckets['H_spigot'] = []
 
         for i in range(self.n_buckets):
-            for attr in self.bucket_attributes_range.items():
+            for attr in self.bucket_attributes_range:
                 if attr == 'A_bucket' or attr == 'H_bucket' or attr == 'rA_spigot' or attr == 'rH_spigot' or attr == 'soil_depth':
                     buckets[attr].append(np.random.uniform(self.bucket_attributes_range[attr][0], 
                                                             self.bucket_attributes_range[attr][1]))
@@ -47,8 +47,8 @@ class BucketSimulation:
             buckets['A_spigot'].append(np.pi * (0.5 * buckets['H_bucket'][i] * buckets['rA_spigot'][i]) ** 2)
             buckets['H_spigot'].append(buckets['H_bucket'][i] * buckets['rH_spigot'][i])
                     
-        buckets = {attr: np.random.uniform(float(low), float(high), self.n_buckets)
-                   for attr, (low, high) in self.bucket_attributes_range.items()}
+        #buckets = {attr: np.random.uniform(float(low), float(high), self.n_buckets)
+       #            for attr, (low, high) in self.bucket_attributes_range.items()}
         h_water_level = np.array([np.random.uniform(0, value) for value in buckets["H_bucket"]])
         mass_overflow = [0]*(self.n_buckets)
         return buckets, h_water_level, mass_overflow
@@ -58,14 +58,14 @@ class BucketSimulation:
         Randomly generates rain parameters based on configured probabilities and depths.
         """
         return [
-            {key: [float(v) for v in value] for key, value in self.rain_depth_range.items()},
+            {key: [float(v) for v in value] for key, value in self.rain_params.items()},
             np.random.uniform(float(self.rain_probability_range["None"][0]), float(self.rain_probability_range["None"][1])),
             np.random.uniform(float(self.rain_probability_range["Heavy"][0]), float(self.rain_probability_range["Heavy"][1])),
             np.random.uniform(float(self.rain_probability_range["Light"][0]), float(self.rain_probability_range["Light"][1]))
         ]
 
     def simulate_rain_event(self, preceding_rain, rain_params):
-        depth_range, no_rain_probability, heavy_rain_probability, light_rain_probability = rain_params
+        params, no_rain_probability, heavy_rain_probability, light_rain_probability = rain_params
        # some percent of time we have no rain at all
         if np.random.uniform(0.01, 0.99) < no_rain_probability:
             rain = 0
@@ -77,20 +77,20 @@ class BucketSimulation:
             if preceding_rain < self.threshold_precip:
                 if np.random.uniform(0, 1) < light_rain_probability:
                     while rain < 0 or rain > self.threshold_precip:
-                        rain = stats.gumbel_r.rvs(depth_range["Light"][0], depth_range["Light"][1])
+                        rain = stats.gumbel_r.rvs(params["Light"][0], params["Light"][1])
                 else:
                     # But if we do have heavy rain, then it could be very heavy
                     while rain < self.threshold_precip or rain > self.max_precip:
-                        rain = stats.genpareto.rvs(depth_range["Heavy"][0], depth_range["Heavy"][1], depth_range["Heavy"][2])
+                        rain = stats.genpareto.rvs(params["Heavy"][0], params["Heavy"][1], params["Heavy"][2])
 
             # If it was heavy rain last hour, then we might have heavy rain again this hour
             else:
                 if np.random.uniform(0, 1) < heavy_rain_probability:
                     while rain < self.threshold_precip or rain > self.max_precip:
-                        rain = stats.genpareto.rvs(depth_range["Heavy"][0], depth_range["Heavy"][1], depth_range["Heavy"][2])
+                        rain = stats.genpareto.rvs(params["Heavy"][0], params["Heavy"][1], params["Heavy"][2])
                 else:
                     while rain < 0 or rain > self.threshold_precip:
-                        rain = stats.gumbel_r.rvs(depth_range["Light"][0], depth_range["Light"][1])
+                        rain = stats.gumbel_r.rvs(params["Light"][0], params["Light"][1])
         return rain
 
     def generate_data(self, num_records):
@@ -196,9 +196,10 @@ class BucketSimulation:
         if h_head_over_spigot > 0:
             velocity_out = np.sqrt(2 * self.g * h_head_over_spigot)
             spigot_out_volume = velocity_out * self.buckets['A_spigot'][ibuc] * self.time_step
+            spigot_out = np.min([spigot_out_volume / self.buckets["A_bucket"][ibuc], h_head_over_spigot])
             if self.is_noise:
                 spigot_out = spigot_out * np.random.normal(1, self.noise_settings.get('q', 0))
-            self.h_water_level = np.min([spigot_out_volume / self.buckets["A_bucket"][ibuc], h_head_over_spigot])
+            self.h_water_level -= spigot_out
 
         else:
             spigot_out = 0
@@ -206,3 +207,4 @@ class BucketSimulation:
             #        spigot_out = spigot_out + np.random.uniform(1, self.noise_settings.get('q', 0)/4)
 
         return spigot_out
+    

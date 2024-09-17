@@ -1,6 +1,6 @@
 device:
   use_cuda: true
-g: 1.271e8
+g: 127100000
 input_vars:
 - precip
 - et
@@ -11,7 +11,7 @@ input_vars:
 model:
   batch_size: 256
   hidden_state_size: 27
-  input_size: 9
+  input_size: 6
   learning_rate:
     gamma: 0.9
     start: 0.1
@@ -20,15 +20,14 @@ model:
   num_epochs: 8
   seq_length: 336
 output_vars:
-- q_total
 - q_spigot
 - q_overflow
 synthetic_data:
   test:
     bucket_attributes:
       A_bucket:
-      - 1e3
-      - 2e3
+      - 1000
+      - 2000
       rA_spigot:
       - 0.15
       - 0.16
@@ -78,8 +77,8 @@ synthetic_data:
   train:
     bucket_attributes:
       A_bucket:
-      - 1e3
-      - 2e3
+      - 1000
+      - 2000
       rA_spigot:
       - 0.15
       - 0.16
@@ -129,8 +128,8 @@ synthetic_data:
   val:
     bucket_attributes:
       A_bucket:
-      - 1e3
-      - 2e3
+      - 1000
+      - 2000
       rA_spigot:
       - 0.15
       - 0.16

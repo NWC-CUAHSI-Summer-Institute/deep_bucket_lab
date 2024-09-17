@@ -2,6 +2,8 @@ import sys
 sys.path.append('./src/')
 import yaml
 import torch
+
+#print(sys.path)
 from data_generation import BucketSimulation
 from model_controller import ModelController
 from validation import ModelValidator
