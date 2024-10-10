@@ -29,6 +29,7 @@ output_vars:
 - q_overflow
 unit_hydrograph_distribution_file: "/home/jmframe/deep_bucket_lab/distributions/scs484.csv"
 synthetic_data:
+  warmup_period: 256
   test:
     bucket_attributes:
       A_bucket:
