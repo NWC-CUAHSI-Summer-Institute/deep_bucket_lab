@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import yaml
+from pyflo import system
+from pyflo.nrcs import hydrology
 
 class BucketSimulation:
     def __init__(self, config, split):
@@ -17,9 +19,10 @@ class BucketSimulation:
         self.rho = float(config['rho'])
         self.mu = float(config['mu'])
         self.is_noise = config['synthetic_data'][split].get('noise', False)
-        self.buckets, self.h_water_level, self.mass_overflow = self.setup_buckets()
+        self.uh484 = system.array_from_csv(self.unit_distribution_path)
+        self.buckets, self.h_water_level, self.mass_overflow = self.setup_buckets(uh484=uh484)
         self.noise_settings = config['synthetic_data'][split].get('noise', {})
-
+        self.unit_distribution_path = config['unit_hydrograph_distribution_file']
 
     def setup_buckets(self):
         """
@@ -29,8 +32,20 @@ class BucketSimulation:
         buckets = {attr: np.random.uniform(float(low), float(high), self.n_buckets)
                    for attr, (low, high) in self.bucket_attributes_range.items()}
         h_water_level = np.array([np.random.uniform(0, value) for value in buckets["H_bucket"]])
-        mass_overflow = np.random.random(self.n_buckets)
+        mass_overflow = np.zeros(self.n_buckets)
         return buckets, h_water_level, mass_overflow
+    
+    def run_unit_hydrograph(self, uh484, ibuc, q_total_inputs):
+        # Set up basin for unit hydrograph transformation
+        basin = hydrology.Basin(
+            area = self.buckets["A_bucket"][ibuc]  / 4047, # transform sq meters to acres -- "the delineated region concentrating to a point"
+            cn=83.0, # "an empirical parameter for predicting direct runoff" 
+            tc=2.3, # "estimated time of concentration in minutes" 
+            runoff_dist=uh484, # "unscaled unit hydrograph runoff distribution"
+            peak_factor=1 # v"alue for scaling peak runoff"
+        )
+        q_total_hyd = basin.flood_hydrograph(q_total_inputs, interval=1)
+        return q_total_hyd
 
     def pick_rain_params(self):
         """
@@ -64,6 +79,8 @@ class BucketSimulation:
         data.loc[:, ['precip', 'et', 'h_bucket', 'q_overflow', 'q_spigot']] = 0
 
         for ibuc in range(self.n_buckets):
+            q_total_inputs = np.zeros(shape=(num_records, 2))
+            q_total_untrans_sum = 0
             for t in range(num_records):
                 precip_in, et = self.simulate_rain_and_et(ibuc, t)
                 self.process_respose_dynamics(ibuc, precip_in, et, t)
@@ -72,15 +89,27 @@ class BucketSimulation:
                 # Assign calculated values to the DataFrame
                 idx = t + ibuc * num_records
                 data.loc[idx, ['precip', 'et', 'h_bucket', 'q_overflow', 'q_spigot']] = [
-                    precip_in, et, self.h_water_level[ibuc], self.mass_overflow[ibuc], spigot_out
+                    precip_in, 
+                    et, 
+                    self.h_water_level[ibuc], 
+                    self.mass_overflow[ibuc], 
+                    spigot_out, 
                 ]
 
                 # Additional attributes can be filled in similarly if needed
                 for attribute in self.bucket_attributes_range.keys():
                     data.loc[idx, attribute] = self.buckets[attribute][ibuc]
 
-        return data
+            idx1 = ibuc * num_records
+            idx2 = idx1 + num_records
+            q_total_inputs = data.loc[idx1:idx2, []'q_overflow', 'q_spigot']]
+            data.loc[idx, 'q_total'] = self.run_unit_hydrograph(self.uh484, ibuc, q_total_inputs)
+            q_total_untrans_sum += (self.mass_overflow[ibuc] + spigot_out) * 39.3701 
+            q_total_inputs[i] = (i, q_total_untrans_sum)   
+            q_total = self.run_unit_hydrograph(self.uh484, ibuc, q_total_inputs)
 
+
+        return data
 
     def simulate_rain_and_et(self, ibuc, t):
         # Picking parameters for rain simulation
