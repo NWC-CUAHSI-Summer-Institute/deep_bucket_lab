@@ -108,8 +108,9 @@ class BucketSimulation:
             q_total_inputs[i] = (i, q_total_untrans_sum)   
             q_total = self.run_unit_hydrograph(self.uh484, ibuc, q_total_inputs)
 
+        assert num_records > self.config['synthetic_data']['warmup_period'], "Number of records must be greater than the warmup period"
 
-        return data
+        return data[self.config['synthetic_data']['warmup_period']:, :]
 
     def simulate_rain_and_et(self, ibuc, t):
         # Picking parameters for rain simulation
