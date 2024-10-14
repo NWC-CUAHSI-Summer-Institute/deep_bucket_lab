@@ -120,7 +120,8 @@ class BucketSimulation:
                 for attribute in self.bucket_attributes_range.keys():
                     data.loc[idx, attribute] = self.buckets[attribute][ibuc]
 
-        return data
+        assert num_records > self.config['synthetic_data']['warmup_period'], "Number of records must be greater than the warmup period"
+        return data[self.config['synthetic_data']['warmup_period']:, :]
 
 
     def simulate_rain_and_et(self, ibuc, t):
