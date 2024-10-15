@@ -16,12 +16,15 @@ model:
     gamma: 0.9
     start: 0.1
     step_size: 2
-  num_classes: 2
+  num_classes: 3
   num_epochs: 8
   seq_length: 336
 output_vars:
 - q_spigot
 - q_overflow
+- q_total
+unit_hydrograph_distribution_file: "distributions/scs484.csv"
+warmup_period: 256
 synthetic_data:
   test:
     bucket_attributes:
@@ -53,7 +56,7 @@ synthetic_data:
       head: 0.05
       pet: 0.05
       q: 0.05
-    num_records: 4360
+    num_records: 1032
     threshold_precip: 0.01
     max_precip: 0.25
     rain_params:
@@ -98,13 +101,13 @@ synthetic_data:
       soil_depth:
       - 0.9
       - 1.1
-    n_buckets: 100
+    n_buckets: 10
     noise:
       et: 0.05
       head: 0.05
       pet: 0.05
       q: 0.05
-    num_records: 4360
+    num_records: 1032
     threshold_precip: 0.01
     max_precip: 0.25
     rain_params:
@@ -149,13 +152,13 @@ synthetic_data:
       soil_depth:
       - 0.9
       - 1.1
-    n_buckets: 16
+    n_buckets: 10
     noise:
       et: 0.05
       head: 0.05
       pet: 0.05
       q: 0.05
-    num_records: 4360
+    num_records: 1032
     threshold_precip: 0.01
     max_precip: 0.25
     rain_params:

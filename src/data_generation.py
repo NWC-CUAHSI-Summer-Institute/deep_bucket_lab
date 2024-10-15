@@ -2,12 +2,15 @@ import numpy as np
 import pandas as pd
 import yaml
 import scipy.stats as stats
+from pyflo import system
+from pyflo.nrcs import hydrology
 
 class BucketSimulation:
     def __init__(self, config, split):
         """
         Initializes the BucketSimulation class with split-specific configurations.
         """
+        self.warmup_period = config['warmup_period']
         self.config = config['synthetic_data'][split]
         self.n_buckets = int(config['synthetic_data'][split]['n_buckets'])
         self.bucket_attributes_range = config['synthetic_data'][split]['bucket_attributes']
@@ -18,8 +21,10 @@ class BucketSimulation:
         self.time_step = float(config['time_step'])
         self.g = float(config['g'])
         self.is_noise = config['synthetic_data'][split].get('noise', False)
+        self.unit_distribution_path = config['unit_hydrograph_distribution_file']
         self.buckets, self.h_water_level, self.mass_overflow = self.setup_buckets()
         self.noise_settings = config['synthetic_data'][split].get('noise', {})
+        self.uh484 = system.array_from_csv(self.unit_distribution_path)
 
     def setup_buckets(self):
         """
@@ -120,8 +125,35 @@ class BucketSimulation:
                 for attribute in self.bucket_attributes_range.keys():
                     data.loc[idx, attribute] = self.buckets[attribute][ibuc]
 
-        assert num_records > self.config['synthetic_data']['warmup_period'], "Number of records must be greater than the warmup period"
-        return data[self.config['synthetic_data']['warmup_period']:, :]
+        # Set up basin for unit hydrograph transformation
+            basin = hydrology.Basin(
+                area = self.buckets["A_bucket"][ibuc] / 4047, # transform sq meters to acres -- "the delineated region concentrating to a point"
+                cn=83.0, # "an empirical parameter for predicting direct runoff" 
+                tc=2.3, # "estimated time of concentration in minutes" 
+                runoff_dist=self.uh484, # "unscaled unit hydrograph runoff distribution"
+                peak_factor=1 # "value for scaling peak runoff"
+            )
+
+            # Set up input array for unit hydrograph transformation
+            q_total_inputs = np.zeros(shape=(len(data), 2))
+            q_total_untrans_sum = 0
+
+            for i in range(len(data)):
+                # q_total = q_overflow + q_spigot, transform m to in.
+                q_total_untrans_sum += (data.loc[i,'q_overflow'] + data.loc[i,'q_spigot']) * 39.3701 
+                q_total_inputs[i] = (i, q_total_untrans_sum)
+
+            # Transform q_total using unit hydrograph method
+            q_total_hyd = basin.flood_hydrograph(q_total_inputs, interval=1)
+            q_total = q_total_hyd[:,1]
+            q_total_trans_sum = 0
+
+            for i in range(len(data)):
+                data.loc[i,'q_total'] = q_total[i] / 35.315 / self.buckets["A_bucket"][ibuc] * 3600 # transform cfs to m^3/hr, normalize q by basin area
+                q_total_trans_sum += data.loc[i,'q_total']
+   
+        assert num_records > self.warmup_period, "Number of records must be greater than the warmup period"
+        return data.iloc[self.warmup_period:, :]
 
 
     def simulate_rain_and_et(self, ibuc, t):
