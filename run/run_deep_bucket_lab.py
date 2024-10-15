@@ -2,6 +2,8 @@ import sys
 sys.path.append('./src/')
 import yaml
 import torch
+
+#print(sys.path)
 from data_generation import BucketSimulation
 from model_controller import ModelController
 from validation import ModelValidator
@@ -23,8 +25,11 @@ bucket_sim_val = BucketSimulation(config, 'val')
 bucket_sim_test = BucketSimulation(config, 'test')
 
 # Simulate and store data for training, validation, and testing
+print("generating training data")
 train_data = bucket_sim_train.generate_data(config['synthetic_data']['train']['num_records'])
+print("generating val data")
 val_data = bucket_sim_val.generate_data(config['synthetic_data']['val']['num_records'])
+print("generating test data")
 test_data = bucket_sim_test.generate_data(config['synthetic_data']['test']['num_records'])
 
 bucket_dictionary = {
@@ -42,9 +47,11 @@ val_loader = model_controller.make_data_loader('val')
 test_loader = model_controller.make_data_loader('test')
 
 # Now train_loader, val_loader, and test_loader should be dictionaries
+print("training model")
 trained_model = model_controller.train_model(train_loader)
 
 model_validator = ModelValidator(trained_model, device, 
                                  bucket_dictionary, val_loader, 
                                  config, "val", model_controller.scaler_out)
+print("validating model")
 model_validator.validate_model()
