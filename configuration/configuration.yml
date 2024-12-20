@@ -1,172 +1,182 @@
 device:
   use_cuda: true
-g: 9.807
-rho: 1000
-mu: 0.001
+g: 127100000
 input_vars:
 - precip
 - et
-- A_bucket
-- A_spigot
 - H_bucket
-- H_spigot
-- K_infiltration
-- ET_parameter
+- rA_spigot
+- rH_spigot
 - soil_depth
 model:
   batch_size: 256
-  hidden_state_size: 16
-  input_size: 9
+  hidden_state_size: 27
+  input_size: 6
   learning_rate:
     gamma: 0.9
     start: 0.1
     step_size: 2
-  num_classes: 2
-  num_epochs: 5
-  seq_length: 24
+  num_classes: 3
+  num_epochs: 8
+  seq_length: 336
 output_vars:
 - q_spigot
 - q_overflow
+- q_total
+unit_hydrograph_distribution_file: "distributions/scs484.csv"
+warmup_period: 256
 synthetic_data:
   test:
     bucket_attributes:
       A_bucket:
-      - 10.0
-      - 20.0
-      A_spigot:
-      - 1
-      - 2
+      - 1000
+      - 2000
+      rA_spigot:
+      - 0.15
+      - 0.16
       ET_parameter:
-      - 0.001
-      - 0.004
+      - 2.2447
+      - 9.9807e-5
+      - 0.0016
       H_bucket:
-      - 5.0
-      - 6.0
-      H_spigot:
-      - 1.0
-      - 3.0
+      - 0.19
+      - 0.21
+      rH_spigot:
+      - 0.15
+      - 0.16
       K_infiltration:
-      - 10e-15
-      - 10e-9
+      - -13.8857
+      - 1.1835
       soil_depth:
-      - 10
-      - 20
-    n_buckets: 1
+      - 0.9
+      - 1.1
+    n_buckets: 2
     noise:
-      et: 0.1
-      head: 0.1
-      pet: 0.1
-      q: 0.1
-    num_records: 500
-    rain_depth:
+      et: 0.05
+      head: 0.05
+      pet: 0.05
+      q: 0.05
+    num_records: 1032
+    threshold_precip: 0.01
+    max_precip: 0.25
+    rain_params:
       Heavy:
-      - 2
-      - 8
+      - 0.2341
+      - 0.0101
+      - 0.009250
       Light:
-      - 0
-      - 2
+      - 0.0008108
+      - 0.0009759
     rain_probability:
       Heavy:
-      - 0.2
-      - 0.3
+      - 0.45
+      - 0.46
       Light:
-      - 0.5
-      - 0.8
+      - 0.55
+      - 0.56
       None:
-      - 0.6
-      - 0.7
+      - 0.45
+      - 0.46
   train:
     bucket_attributes:
       A_bucket:
-      - 10.0
-      - 20.0
-      A_spigot:
-      - 1
-      - 2
+      - 1000
+      - 2000
+      rA_spigot:
+      - 0.15
+      - 0.16
       ET_parameter:
-      - 0.001
-      - 0.004
+      - 2.2447
+      - 9.9807e-5
+      - 0.0016
       H_bucket:
-      - 5.0
-      - 6.0
-      H_spigot:
-      - 1.0
-      - 3.0
+      - 0.19
+      - 0.21
+      rH_spigot:
+      - 0.15
+      - 0.16
       K_infiltration:
-      - 10e-15
-      - 10e-9
+      - -13.8857
+      - 1.1835
       soil_depth:
-      - 10
-      - 20
+      - 0.9
+      - 1.1
     n_buckets: 10
     noise:
-      et: 0.01
-      head: 0.01
-      pet: 0.01
-      q: 0.01
-    num_records: 1000
-    rain_depth:
+      et: 0.05
+      head: 0.05
+      pet: 0.05
+      q: 0.05
+    num_records: 1032
+    threshold_precip: 0.01
+    max_precip: 0.25
+    rain_params:
       Heavy:
-      - 2
-      - 8
+      - 0.2341
+      - 0.0101
+      - 0.009250
       Light:
-      - 0
-      - 2
+      - 0.0008108
+      - 0.0009759
     rain_probability:
       Heavy:
-      - 0.2
-      - 0.3
+      - 0.45
+      - 0.46
       Light:
-      - 0.5
-      - 0.8
+      - 0.55
+      - 0.56
       None:
-      - 0.6
-      - 0.7
+      - 0.45
+      - 0.46
   val:
     bucket_attributes:
       A_bucket:
-      - 10.0
-      - 20.0
-      A_spigot:
-      - 1
-      - 2
+      - 1000
+      - 2000
+      rA_spigot:
+      - 0.15
+      - 0.16
       ET_parameter:
-      - 0.001
-      - 0.004
+      - 2.2447
+      - 9.9807e-5
+      - 0.0016
       H_bucket:
-      - 5.0
-      - 6.0
-      H_spigot:
-      - 1.0
-      - 3.0
+      - 0.19
+      - 0.21
+      rH_spigot:
+      - 0.15
+      - 0.16
       K_infiltration:
-      - 10e-15
-      - 10e-9
+      - -13.8857
+      - 1.1835
       soil_depth:
-      - 10
-      - 20
-    n_buckets: 5
+      - 0.9
+      - 1.1
+    n_buckets: 10
     noise:
-      et: 0.01
-      head: 0.4
-      pet: 0.01
-      q: 0.01
-    num_records: 500
-    rain_depth:
+      et: 0.05
+      head: 0.05
+      pet: 0.05
+      q: 0.05
+    num_records: 1032
+    threshold_precip: 0.01
+    max_precip: 0.25
+    rain_params:
       Heavy:
-      - 2
-      - 8
+      - 0.2341
+      - 0.0101
+      - 0.009250
       Light:
-      - 0
-      - 2
+      - 0.0008108
+      - 0.0009759
     rain_probability:
       Heavy:
-      - 0.2
-      - 0.3
+      - 0.45
+      - 0.46
       Light:
-      - 0.5
-      - 0.8
+      - 0.55
+      - 0.56
       None:
-      - 0.6
-      - 0.7
+      - 0.45
+      - 0.46
 time_step: 1
