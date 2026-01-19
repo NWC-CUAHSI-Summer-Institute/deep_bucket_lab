@@ -1,0 +1,12 @@
+name: deep_bucket_ode
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy
+  - pandas
+  - matplotlib
+  - jax
+  - jaxlib
+  - diffrax
+  - jaxopt
