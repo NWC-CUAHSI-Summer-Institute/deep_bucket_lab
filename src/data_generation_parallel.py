@@ -10,6 +10,8 @@ Key improvements over data_generation.py:
 3. Progress tracking with tqdm
 4. Safer rain generation with retry limits
 5. Named constants for magic numbers
+6. Fixed unit hydrograph implementation
+7. Fixed Spigot outflow updates
 """
 
 import numpy as np
