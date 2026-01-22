@@ -424,17 +424,3 @@ class BucketSimulationParallel:
         data = data[data['time'] >= self.warmup_period].reset_index(drop=True)
         
         return data
-
-
-if __name__ == "__main__":
-    # Example usage
-    import yaml
-    
-    with open('./configuration/configuration.yml', 'r') as f:
-        config = yaml.safe_load(f)
-    
-    sim = BucketSimulationParallel(config, 'train')
-    data = sim.generate_data(num_records=1000, use_parallel=True)
-    
-    print(f"\nGenerated {len(data)} records")
-    print(data.head())
