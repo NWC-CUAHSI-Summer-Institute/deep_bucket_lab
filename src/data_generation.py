@@ -4,6 +4,8 @@ import yaml
 import scipy.stats as stats
 from pyflo import system
 from pyflo.nrcs import hydrology
+from pathlib import Path
+
 
 class BucketSimulation:
     def __init__(self, config, split):
@@ -24,7 +26,21 @@ class BucketSimulation:
         self.unit_distribution_path = config['unit_hydrograph_distribution_file']
         self.buckets, self.h_water_level, self.mass_overflow = self.setup_buckets()
         self.noise_settings = config['synthetic_data'][split].get('noise', {})
-        self.uh484 = system.array_from_csv(self.unit_distribution_path)
+        # Resolve UH csv path relative to repo root so runs work from any CWD (nbconvert, etc.)
+        dist_path = Path(self.unit_distribution_path)
+
+        if not dist_path.is_absolute():
+            repo_root = Path(__file__).resolve().parents[1]  # .../deep_bucket_lab
+            dist_path = (repo_root / dist_path).resolve()
+
+        if not dist_path.exists():
+            raise FileNotFoundError(
+                f"Unit hydrograph distribution file not found: {dist_path} "
+                f"(config value: {self.unit_distribution_path})"
+            )
+
+        self.uh484 = system.array_from_csv(str(dist_path))
+
 
     def setup_buckets(self):
         """
