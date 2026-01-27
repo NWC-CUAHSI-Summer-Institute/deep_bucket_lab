@@ -248,7 +248,7 @@ class BucketSimulation:
             spigot_out = np.min([spigot_out_volume / self.buckets["A_bucket"][ibuc], h_head_over_spigot])
             if self.is_noise:
                 spigot_out = spigot_out * np.random.normal(1, self.noise_settings.get('q', 0))
-            self.h_water_level -= spigot_out
+            self.h_water_level[ibuc] -= spigot_out
 
         else:
             spigot_out = 0
