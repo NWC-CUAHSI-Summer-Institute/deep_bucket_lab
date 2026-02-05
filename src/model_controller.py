@@ -25,25 +25,6 @@ class ModelController:
     def initialize_model(self):
         self.lstm = deep_bucket_model(self.model_config).to(self.device)
 
-    def _compute_target_stats(self, train_loader):
-        """
-        Compute dataset-level mean/std for the *last timestep* target vector
-        across all buckets. Targets are in SCALED space (because make_data_loader
-        applies scaler_out).
-        """
-        eps = 1e-8
-        ys = []
-
-        for _, loader in train_loader.items():
-            for _, targets in loader:
-                # targets: (batch, seq_len, out_dim) -> use last step to match training
-                ys.append(targets[:, -1, :])
-
-        y = torch.cat(ys, dim=0).to(self.device)  # (N, out_dim)
-        y_mean = y.mean(dim=0, keepdim=True)
-        y_std = y.std(dim=0, keepdim=True) + eps
-        return y_mean, y_std
-
     def do_config(self):
         self.model_config = self.config["model"]
         self.input_vars = self.config["input_vars"]
@@ -100,31 +81,6 @@ class ModelController:
     def train_model(self, train_loader):
         criterion = torch.nn.MSELoss()
 
-        # Compute dataset-level target stats once (across all training buckets), in SCALED space
-        y_mean, y_std = self._compute_target_stats(train_loader)
-
-        # Read mass constraint weight from YAML (defaults to 0.0 = off)
-        lambda_mass = float(self.config.get("loss", {}).get("lambda_mass", 0.0))
-
-        # Build tensors to inverse-transform outputs back to physical units:
-        # StandardScaler: x_scaled = (x - mean) / scale  ->  x = x_scaled * scale + mean
-        out_means = torch.tensor(
-            [self.scaler_out[v].mean_[0] for v in self.output_vars],
-            device=self.device,
-            dtype=torch.float32,
-        )
-        out_scales = torch.tensor(
-            [self.scaler_out[v].scale_[0] for v in self.output_vars],
-            device=self.device,
-            dtype=torch.float32,
-        )
-
-        # Indices for mass conservation (only if these vars exist)
-        idx_spigot = self.output_vars.index("q_spigot") if "q_spigot" in self.output_vars else None
-        idx_overflow = self.output_vars.index("q_overflow") if "q_overflow" in self.output_vars else None
-        idx_total = self.output_vars.index("q_total") if "q_total" in self.output_vars else None
-        use_mass_loss = (idx_spigot is not None) and (idx_overflow is not None) and (idx_total is not None)
-
         optimizer = torch.optim.Adam(
             self.lstm.parameters(),
             lr=self.config["model"]["learning_rate"]["start"],
@@ -135,7 +91,6 @@ class ModelController:
             gamma=self.config["model"]["learning_rate"]["gamma"],
         )
 
-        eps = 1e-8
         num_epochs = self.config["model"]["num_epochs"]
 
         for epoch in range(num_epochs):
@@ -153,28 +108,8 @@ class ModelController:
                     output = self.lstm(data)          # (batch, out_dim) in SCALED space
                     targets_last = targets[:, -1, :]  # (batch, out_dim) in SCALED space
 
-                    # Normalize across outputs using dataset-level stats (SCALED space)
-                    targets_n = (targets_last - y_mean) / y_std
-                    output_n = (output - y_mean) / y_std
-
-                    data_loss = criterion(output_n, targets_n)
-
-                    # Optional mass penalty in PHYSICAL space
-                    if use_mass_loss and lambda_mass > 0.0:
-                        # Inverse-transform selected outputs to physical units
-                        q_sp = output[:, idx_spigot] * out_scales[idx_spigot] + out_means[idx_spigot]
-                        q_ov = output[:, idx_overflow] * out_scales[idx_overflow] + out_means[idx_overflow]
-                        q_to = output[:, idx_total] * out_scales[idx_total] + out_means[idx_total]
-
-                        mass_err = q_to - (q_sp + q_ov)
-
-                        # Normalize by physical std of q_total (i.e., its scaler scale) for stability
-                        mass_err_n = mass_err / (out_scales[idx_total] + eps)
-                        mass_loss = (mass_err_n ** 2).mean()
-
-                        loss = data_loss + lambda_mass * mass_loss
-                    else:
-                        loss = data_loss
+                    # Compute loss directly on scaled outputs (StandardScaler already applied)
+                    loss = criterion(output, targets_last)
 
                     loss.backward()
                     optimizer.step()
