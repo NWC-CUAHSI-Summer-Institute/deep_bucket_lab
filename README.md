@@ -1,6 +1,6 @@
 # DeepBucketLab
 
-[![DOI](https://sandbox.zenodo.org/badge/DOI/10.5072/zenodo.7349.svg)](https://sandbox.zenodo.org/doi/10.5072/zenodo.7348)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14538196.svg)](https://doi.org/10.5281/zenodo.14538196)
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/NWC-CUAHSI-Summer-Institute/deep_bucket_lab/HEAD)
 
