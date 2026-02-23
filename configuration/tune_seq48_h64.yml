@@ -8,17 +8,18 @@ input_vars:
 - rA_spigot
 - rH_spigot
 - soil_depth
+
 model:
   batch_size: 256
-  hidden_state_size: 27
+  hidden_state_size: 64
   input_size: 6
   learning_rate:
     gamma: 0.9
-    start: 0.1
+    start: 0.001
     step_size: 2
   num_classes: 3
   num_epochs: 8
-  seq_length: 336
+  seq_length: 48
 output_vars:
 - q_spigot
 - q_overflow
@@ -42,8 +43,8 @@ synthetic_data:
       - 0.19
       - 0.21
       rH_spigot:
-      - 0.15
-      - 0.16
+      - 0.60
+      - 0.95
       K_infiltration:
       - -13.8857
       - 1.1835
@@ -93,8 +94,8 @@ synthetic_data:
       - 0.19
       - 0.21
       rH_spigot:
-      - 0.15
-      - 0.16
+      - 0.60
+      - 0.95
       K_infiltration:
       - -13.8857
       - 1.1835
@@ -144,8 +145,8 @@ synthetic_data:
       - 0.19
       - 0.21
       rH_spigot:
-      - 0.15
-      - 0.16
+      - 0.60
+      - 0.95
       K_infiltration:
       - -13.8857
       - 1.1835
